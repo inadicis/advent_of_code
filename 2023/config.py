@@ -1,4 +1,3 @@
-
 import os.path
 from logging.config import dictConfig
 
