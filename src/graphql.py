@@ -1,17 +1,12 @@
 import dataclasses
 import logging
 from datetime import datetime
-from functools import cached_property
 from random import randint
 from typing import Self
 
-from pydantic import BaseModel, Field, field_validator
 import strawberry
-from strawberry.fastapi import GraphQLRouter
-from strawberry.types import Info
-from strawberry.types.info import RootValueType
-
 from graphql import NoSchemaIntrospectionCustomRule
+from pydantic import BaseModel, Field, field_validator
 from strawberry.extensions import (
     AddValidationRules,
     MaxAliasesLimiter,
@@ -19,8 +14,8 @@ from strawberry.extensions import (
     QueryDepthLimiter,
     SchemaExtension,
 )
-
-
+from strawberry.fastapi import GraphQLRouter
+from strawberry.types import Info
 
 from src.config.env_settings import get_env_settings
 
@@ -36,8 +31,6 @@ class MyExampleModel:
     type: str = "A"
 
 
-
-
 @strawberry.interface
 class BaseType:
     id: str
@@ -51,7 +44,12 @@ class MyExampleType(BaseType):
 
     @classmethod
     def from_my_example_model(cls, example: MyExampleModel) -> Self:
-        return cls(content=example.content, amount=example.amount, id=randint(1, 1000), created_at=datetime.utcnow())
+        return cls(
+            content=example.content,
+            amount=example.amount,
+            id=randint(1, 1000),
+            created_at=datetime.utcnow(),
+        )
 
 
 class DictExportableMixin:
@@ -112,7 +110,6 @@ class Query:
         options: QueryOptionsInput,
         info: Info,
     ) -> list[MyExampleType]:
-        
         return [
             MyExampleType.from_my_example_model(s)
             for s in await my_resolver(options=QueryOptions(**options.dict()))
@@ -144,7 +141,6 @@ schema = strawberry.Schema(
 
 graphql_app = GraphQLRouter(
     schema,
-    
 )
 
 
@@ -168,12 +164,10 @@ if get_env_settings().debug:
 
 schema = strawberry.Schema(
     query=Query,
-
     extensions=schema_extensions,
 )
 
 graphql_app = GraphQLRouter(
     schema,
-    
     graphiql=get_env_settings().debug,
 )

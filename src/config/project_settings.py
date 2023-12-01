@@ -1,7 +1,8 @@
 from functools import lru_cache
 
 import toml
-from pydantic import BaseModel, Extra, ConfigDict
+from pydantic import BaseModel, ConfigDict, Extra
+
 from src.config import BASE_DIR
 
 

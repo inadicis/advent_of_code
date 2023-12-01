@@ -16,7 +16,7 @@ for requirement in requirements:
     if not requirement or requirement.startswith("#"):
         continue
 
-    if requirement.startswith('-') or requirement.startswith('--requirement'):
+    if requirement.startswith("-") or requirement.startswith("--requirement"):
         logging.warning(f"Did not analyze line `{requirement}` (- not supported)")
         # TODO
         continue
@@ -32,7 +32,7 @@ for requirement in requirements:
 
     try:
         while "${" in dependency:
-            dependency = dependency[dependency.index("}") + 1:]
+            dependency = dependency[dependency.index("}") + 1 :]
         v = metadata.version(dependency)
     except metadata.PackageNotFoundError:
         missing_requirements.append(requirement)

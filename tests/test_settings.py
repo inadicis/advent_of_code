@@ -1,7 +1,7 @@
 import pytest
 
-from src.config.env_settings import EnvSettings, get_env_settings
 from src.config import DeployEnvironments
+from src.config.env_settings import EnvSettings, get_env_settings
 
 
 @pytest.mark.asyncio
