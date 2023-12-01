@@ -1,0 +1,80 @@
+[project]
+version = "0.0.1"
+name = "advent_of_code_2023"
+description = """Scripts and code used to complete the advent of code of 2023, in python"""
+readme = "README.md"
+requires-python = ">=3.11"
+#license
+authors = [
+    { name = "Nils Cichy", email = "nils.cichy@TODO" }
+]
+
+[project.urls]
+homepage = "" # TODO not deployed yet
+documentation = "" # TODO not deployed ted
+repository = "https://bitbucket.org/ella_ai/advent_of_code_2023/"
+# changelog = ""
+
+
+[tool.ruff]
+exclude = [
+    "socket_client.py"
+]
+extend-select = [
+    "B",
+    "BLE",
+    "C4",
+    "ERA",
+    "I",
+    "ICN",
+    "INP",
+    "ISC",
+    "N",
+    "NPY",
+    "PGH",
+    "PIE",
+    # "PTH",
+    "Q",
+    "RET",
+    "RSE",
+    "RUF",
+    "S",
+    "SIM",
+    "T20",
+    "TCH",
+    "TID",
+    "YTT",
+]
+ignore = [
+    "E402",
+    "ERA001", # outcommented code
+    "B905",
+    "N818",
+    "S101",
+    #    "S104", # flake8-bandit / -bugbear, hardcoded bind-all interfaces
+    "B008", # perform function call in argument defaults
+    #    "E501", # line length
+    #    "PGH004" # explicit noqa rules
+    "RUF100", # unused noqa s
+    # "N805",
+]
+show-fixes = true
+target-version = "py310"
+
+line-length = 99
+
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "."
+]
+
+asyncio_mode = "auto"
+
+
+[tool.black]
+line-length = 99
+target-version = ['py311']
+extend_exclude = """
+^/venv
+"""

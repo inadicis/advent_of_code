@@ -1,0 +1,26 @@
+steps:
+  - id: manage traffic
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'services'
+      - 'update-traffic'
+      - '${_SERVICE_NAME}'
+      - '--to-latest'
+      - '--region=$_DEPLOY_REGION'
+
+tags:
+  - deploy
+  - $_SERVICE_NAME
+
+# TODO-CONFIG verify and update substitutions
+substitutions:
+  _SERVICE_NAME: advent-of-code-2023
+
+options:
+    dynamic_substitutions: true
+    logging: CLOUD_LOGGING_ONLY
+
+
+

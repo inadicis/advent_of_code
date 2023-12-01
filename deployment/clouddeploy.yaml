@@ -1,0 +1,49 @@
+steps:
+  - id: Deploy-new-revision
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    timeout: 300s
+    args:
+      - '-c'
+      - "\
+        gcloud run deploy ${_SERVICE_NAME} \
+        --image=$_DEPLOY_REGION-docker.pkg.dev/\
+        $PROJECT_ID/${_IMAGE_REPOSITORY}/${_IMAGE}:${TAG_NAME} \
+        --tag=${_REVISION_TAG} \
+        --revision-suffix=${_REVISION_TAG}-$$RANDOM \
+        --region=$_DEPLOY_REGION \
+        --min-instances=$_MIN_INSTANCES \
+        --max-instances=$_MAX_INSTANCES \
+        --service-account=${_RUN_SERVICE_ACCOUNT} \
+        --platform=managed \
+        --allow-unauthenticated \
+        --set-env-vars=\
+        DEPLOY_ENVIRONMENT=${_DEPLOY_ENVIRONMENT},\
+        KEEP_THIS_AS_LAST_ENV=true \
+        
+      "
+
+tags:
+  - deploy
+  - $_SERVICE_NAME
+  - $_DEPLOY_ENVIRONMENT
+  - $TAG_NAME
+
+# TODO-CONFIG verify and update substitutions
+substitutions:
+  _DEPLOY_REGION: europe-west3
+  _SERVICE_NAME: advent-of-code-2023
+  _IMAGE_REPOSITORY: advent-of-code-2023
+  _IMAGE: advent_of_code_2023
+  _REVISION_TAG: ${TAG_NAME//./-}
+  _RUN_SERVICE_ACCOUNT:
+
+
+# TODO-CONFIG Set those substitutions in trigger
+  _DEPLOY_ENVIRONMENT:
+  _MIN_INSTANCES:
+  _MAX_INSTANCES:
+
+options:
+    dynamic_substitutions: true
+    logging: CLOUD_LOGGING_ONLY
