@@ -1,6 +1,7 @@
-from collections.abc import Sequence
 from pathlib import Path
-from typing import Iterable, Mapping
+from pathlib import Path
+from typing import Mapping
+
 import pytest
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -128,7 +129,7 @@ def test_extract_valid_games(
 )
 def test_extract_minimum_colors(
     game_log: str,
-    expected_result: tuple[int, int, int],
+    expected_result: dict[str, int],
 ):
     v = extract_min_amounts(
         game_log,

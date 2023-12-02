@@ -1,6 +1,6 @@
-from collections.abc import Sequence
 from pathlib import Path
 from typing import Iterable, Mapping
+
 import pytest
 
 BASE_DIR = Path(__file__).resolve().parent
