@@ -27,6 +27,23 @@ def is_game_possible(
     amount_blue: int,
     amount_green: int,
 ) -> bool:
+    game_id, pulls = game_log.split(":")
+    pulls = pulls.strip().split(";")
+    color_max = {"blue": amount_blue, "green": amount_green, "red": amount_red}
+    for pull in pulls:
+        color_pulls = pull.strip().split(",")
+        for color_pull in color_pulls:
+            amount, color = color_pull.strip().split(" ")
+            if int(amount.strip()) > color_max[color]:  # raises if color not in mapping
+                return False
+            # if color == "blue" and int(amount) > amount_blue:
+            #     return False
+            # elif color == "red" and int(amount) > amount_red:
+            #     return False
+            # elif color == "green" and int(amount) > amount_green:
+            #     return False
+            # else:
+            #     raise ValueError(f"Non recognized color {color}")
     return True
 
 
