@@ -17,11 +17,8 @@ async def local_home_page():
     return "Hello localhost"
 
 
-
 @local_router.get("/1")
 async def day_1():
     # each line, first and last digit
 
-
     return "Hello localhost"
-
