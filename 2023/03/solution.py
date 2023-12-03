@@ -6,53 +6,57 @@ import pytest
 BASE_DIR = Path(__file__).resolve().parent
 
 
-def main(
-    lines: list[str],
-) -> list[int]:
-    results = []
-    for i, line in enumerate(lines):
-        result = process_one_line(line)
-        results.append(result)
-
-    return results
+# symbols / digits / points
+# - symbols create a "safe area"
+# - digits are chained to each other to build a number -> one digit must be part of a safe area
+# - points are neutral
 
 
-def process_one_line(line: str) -> bool:
-    data = cleanup_one_line(line)
+def extract_safe_numbers(lines: list[str]) -> list[int]:
+    # data = cleanup_one_line(line)
     # calculate wanted result
-    return True
+    return []
 
 
-MyDatastructure = typing.TypeVar("MyDatastructure")
-
-
-def cleanup_one_line(line: str) -> MyDatastructure:
-    """Builds an adapted data structure for the data "hidden" in the line"""
-    return line
+#
+# def cleanup_one_line(line: str) -> list[int]:
+#     """Builds an adapted data structure for the data "hidden" in the line"""
+#     return line
 
 
 @pytest.mark.parametrize(
-    ["line", "expected_result"],
+    ["lines", "expected_result"],
     [
         [
-            "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green",
-            {"red": 4, "green": 2, "blue": 6},
+            [
+                "467..114..",
+                "...*......",
+                "..35..633.",
+                "......#...",
+                "617*......",
+                ".....+.58.",
+                "..592.....",
+                "......755.",
+                "...$.*....",
+                ".664.598..",
+            ],
+            [467, 35, 633, 617, 592, 755, 664, 598],
         ]
     ],
 )
-def test_extract_minimum_colors(
-    line: str,
-    expected_result: MyDatastructure,
+def test_extract_safe_numbers(
+    lines: list[str],
+    expected_result: list[int],
 ):
-    v = process_one_line(
-        line,
+    v = extract_safe_numbers(
+        lines,
     )
     assert v == expected_result
 
 
 if __name__ == "__main__":
     with open(BASE_DIR / "input.txt", "r") as f:
-        results = main(
+        results = extract_safe_numbers(
             f.readlines(),
         )
         print(results)
