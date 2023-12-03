@@ -37,7 +37,7 @@ def extract_safe_numbers(lines: list[str]) -> list[tuple[int, int, int]]:
         # previous_char = None
         current_number = ""
         is_current_number_safe = False
-        for char_index, char in enumerate(line.strip()):
+        for char_index, char in enumerate(line):
             char: str
             # if len(line) > char_index + 1:
             #     next_char = line[char_index + 1]
@@ -86,7 +86,7 @@ def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -
             if len(lines[i]) <= j:
                 continue
             adjacent_char = lines[i][j]
-            if not adjacent_char.isdigit() and not adjacent_char == ".":
+            if not adjacent_char.isdigit() and not adjacent_char in [".", "\n"]:
                 return True
     return False
 
@@ -132,7 +132,7 @@ def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -
                 ".24$-4..",
                 "......*.",
             ],
-            [24,4],
+            [24, 4],
         ],
         [
             [
@@ -140,7 +140,7 @@ def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -
                 "..$..$..",
                 "11....11",
             ],
-            [11,11,11,11],
+            [11, 11, 11, 11],
         ],
         [
             [
@@ -149,7 +149,7 @@ def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -
                 ".1....1.",
                 "$......$",
             ],
-            [1,1,1,1],
+            [1, 1, 1, 1],
         ],
         [
             [
@@ -158,7 +158,7 @@ def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -
                 ".11..11.",
                 "$......$",
             ],
-            [11,11,11,11],
+            [11, 11, 11, 11],
         ],
         [
             [
@@ -167,7 +167,7 @@ def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -
                 "11$",
                 "...",
             ],
-            [11,11],
+            [11, 11],
         ],
         [
             [
@@ -180,7 +180,7 @@ def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -
                 "11.",
                 "..$",
             ],
-            [11,11,11,11],
+            [11, 11, 11, 11],
         ],
         [
             [
@@ -191,8 +191,8 @@ def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -
     ],
 )
 def test_extract_safe_numbers(
-    lines: list[str],
-    expected_result: list[int],
+        lines: list[str],
+        expected_result: list[int],
 ):
     numbers = [number for number, line, char in extract_safe_numbers(lines)]
     assert numbers == expected_result
@@ -234,14 +234,14 @@ def qa_results(lines: list[str], safe_numbers: list[int, int, int]):
     wrapped_lines = ["." + line + "." for line in wrapped_lines]
     for number, line_index, last_char_index in safe_numbers:
         line_before = wrapped_lines[line_index][
-            last_char_index - len(str(number)) : last_char_index + 2
-        ]
+                      last_char_index - len(str(number)): last_char_index + 2
+                      ]
         line_of_number = wrapped_lines[line_index + 1][
-            last_char_index - len(str(number)) : last_char_index + 2
-        ]
+                         last_char_index - len(str(number)): last_char_index + 2
+                         ]
         line_after = wrapped_lines[line_index + 2][
-            last_char_index - len(str(number)) : last_char_index + 2
-        ]
+                     last_char_index - len(str(number)): last_char_index + 2
+                     ]
         # print(line_before)
         # print(line_of_number)
         # print(line_after)
