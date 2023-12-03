@@ -1,3 +1,4 @@
+import pprint
 import typing
 from pathlib import Path
 
@@ -99,7 +100,7 @@ def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -
     [
         [
             [
-                "467..114..",
+                "467..114.+",
                 "...*......",
                 "..35..633.",
                 "......#...",
@@ -124,10 +125,51 @@ def test_extract_safe_numbers(
     assert v == expected_result
 
 
+def qa_results(lines: list[str], safe_numbers: list[int]):
+    # add points around to avoid out of bounds when looking around digits
+    # pprint.pp(lines)
+    wrapped_lines = ["." + line.strip() + "." for line in lines]
+    line_length = len(wrapped_lines[0])
+    text = "." * line_length + "\n" + "\n".join(wrapped_lines) + "\n" + "." * line_length
+    # pprint.pp(wrapped_lines)
+    # pprint.pp(text)
+    current_index = 0
+    for number_id, number in enumerate(safe_numbers):
+        sub = str(number)
+        i = text.find(sub, current_index, len(text))
+        min_col = i - 1
+        max_col = i + len(sub) + 1  # excluded
+        # print(f"{number_id=}, {number=}, {i=}, {min_col=}, {max_col=}")
+        offset = line_length + 1  # we have to count newline char now
+        chars_line_before = text[min_col - offset: max_col - offset]
+        chars_same_line = text[min_col:max_col]
+        chars_line_after = text[min_col + offset: max_col + offset]
+        chars = {*chars_line_before, *chars_same_line, *chars_line_after}
+        symbols = {char for char in chars if char != "." and not char.isdigit()}
+        if not symbols:
+            print(chars_line_before)
+            print(chars_same_line)
+            print(chars_line_after)
+            print()
+            break
+        else:
+            print(f"{number=}, {i=}, {number_id=}, {chars=}")
+        current_index = i
+        # if number_id > 500:
+        #     break
+
+
 if __name__ == "__main__":
     with open(BASE_DIR / "input.txt", "r") as f:
         results = extract_safe_numbers(
             f.readlines(),
         )
-        print(results)
-        print(sum(results))
+        # print(results)
+        # print(sorted(results))
+        # print(sum(results))
+
+    with open(BASE_DIR / "input.txt", "r") as f:
+        qa = qa_results(
+            f.readlines(),
+            results
+        )
