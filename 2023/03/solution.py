@@ -23,23 +23,23 @@ BASE_DIR = Path(__file__).resolve().parent
 
 def extract_safe_numbers(lines: list[str]) -> list[int]:
     safe_numbers = []
-    previous_line = None
+    # previous_line = None
     for line_index, line in enumerate(lines):
-        line: str
-        if len(lines) > line_index + 1:
-            next_line = lines[line_index + 1]
-        else:
-            next_line = None
+        # line: str
+        # if len(lines) > line_index + 1:
+        #     next_line = lines[line_index + 1]
+        # else:
+        #     next_line = None
 
-        previous_char = None
+        # previous_char = None
         current_number = ""
         is_current_number_safe = False
         for char_index, char in enumerate(line):
             char: str
-            if len(line) > char_index + 1:
-                next_char = line[char_index + 1]
-            else:
-                next_char = None
+            # if len(line) > char_index + 1:
+            #     next_char = line[char_index + 1]
+            # else:
+            #     next_char = None
 
             if char.isdigit():
                 current_number += char
@@ -47,16 +47,19 @@ def extract_safe_numbers(lines: list[str]) -> list[int]:
                     lines, line_index, char_index
                 )
 
-
             else:
                 if current_number and is_current_number_safe:
                     safe_numbers.append(int(current_number))
                 else:
                     current_number = ""
 
-            previous_char = char
+            # handle numbers that end the line as well
+            if current_number and is_current_number_safe:
+                safe_numbers.append(int(current_number))
 
-        previous_line = line
+            # previous_char = char
+
+        # previous_line = line
 
     # data = cleanup_one_line(line)
     # calculate wanted result
@@ -64,10 +67,21 @@ def extract_safe_numbers(lines: list[str]) -> list[int]:
 
 
 def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -> True:
-    for i in [line_index - 1, line_index, line_index + 1]:
-        for j in [char_index - 1, char_index, char_index + 1]:
+    rows_min = max(0, line_index - 1)
+    rows_max = min(len(lines), line_index + 1)
+
+    # assuming the 3 lines have the same length
+    col_min = max(0, char_index - 1)
+    col_max = min(len(lines[line_index]), char_index + 1)
+
+    for i in range(rows_min, rows_max + 1):
+        if len(lines) <= i:
+            continue
+        for j in range(col_min, col_max + 1):
             # we do check for positions that are waste of processor time (e.g. middle,
             # or adjacent numbers)
+            if len(lines[i]) <= j:
+                continue
             adjacent_char = lines[i][j]
             if not adjacent_char.isdigit() and not adjacent_char == ".":
                 return True
