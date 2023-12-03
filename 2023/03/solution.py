@@ -50,12 +50,12 @@ def extract_safe_numbers(lines: list[str]) -> list[int]:
             else:
                 if current_number and is_current_number_safe:
                     safe_numbers.append(int(current_number))
-                else:
-                    current_number = ""
+                current_number = ""
+                is_current_number_safe = False
 
             # handle numbers that end the line as well
-            if current_number and is_current_number_safe:
-                safe_numbers.append(int(current_number))
+        if current_number and is_current_number_safe:
+            safe_numbers.append(int(current_number))
 
             # previous_char = char
 
@@ -63,7 +63,7 @@ def extract_safe_numbers(lines: list[str]) -> list[int]:
 
     # data = cleanup_one_line(line)
     # calculate wanted result
-    return []
+    return safe_numbers
 
 
 def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -> True:
@@ -79,7 +79,7 @@ def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -
             continue
         for j in range(col_min, col_max + 1):
             # we do check for positions that are waste of processor time (e.g. middle,
-            # or adjacent numbers)
+            # or adjacent numbers), or adjacent chars of previous numbers
             if len(lines[i]) <= j:
                 continue
             adjacent_char = lines[i][j]
