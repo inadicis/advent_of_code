@@ -12,10 +12,66 @@ BASE_DIR = Path(__file__).resolve().parent
 # - points are neutral
 
 
+# vertical dependency: one char depends on only 3 lines (before, same, after),
+# horizontal: because of digits chaining together, potentially the whole line is necessary
+
+
+# ideas
+# - boolean filter eliminating all non-safe zones -> find remaining numbers -> look around them
+# in original input
+# - go through numbers, find out if there is a symbol adjacent
+
 def extract_safe_numbers(lines: list[str]) -> list[int]:
+    safe_numbers = []
+    previous_line = None
+    for line_index, line in enumerate(lines):
+        line: str
+        if len(lines) > line_index + 1:
+            next_line = lines[line_index + 1]
+        else:
+            next_line = None
+
+        previous_char = None
+        current_number = ""
+        is_current_number_safe = False
+        for char_index, char in enumerate(line):
+            char: str
+            if len(line) > char_index + 1:
+                next_char = line[char_index + 1]
+            else:
+                next_char = None
+
+            if char.isdigit():
+                current_number += char
+                is_current_number_safe = is_current_number_safe or check_adjacent_symbols(
+                    lines, line_index, char_index
+                )
+
+
+            else:
+                if current_number and is_current_number_safe:
+                    safe_numbers.append(int(current_number))
+                else:
+                    current_number = ""
+
+            previous_char = char
+
+        previous_line = line
+
     # data = cleanup_one_line(line)
     # calculate wanted result
     return []
+
+
+def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -> True:
+    for i in [line_index - 1, line_index, line_index + 1]:
+        for j in [char_index - 1, char_index, char_index + 1]:
+            # we do check for positions that are waste of processor time (e.g. middle,
+            # or adjacent numbers)
+            adjacent_char = lines[i][j]
+            if not adjacent_char.isdigit() and not adjacent_char == ".":
+                return True
+    return False
 
 
 #
@@ -45,8 +101,8 @@ def extract_safe_numbers(lines: list[str]) -> list[int]:
     ],
 )
 def test_extract_safe_numbers(
-    lines: list[str],
-    expected_result: list[int],
+        lines: list[str],
+        expected_result: list[int],
 ):
     v = extract_safe_numbers(
         lines,
