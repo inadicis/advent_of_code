@@ -22,6 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent
 # in original input
 # - go through numbers, find out if there is a symbol adjacent
 
+
 def extract_safe_numbers(lines: list[str]) -> list[tuple[int, int, int]]:
     """Returns a number, its line index and its last character char index"""
     safe_numbers = []
@@ -36,7 +37,7 @@ def extract_safe_numbers(lines: list[str]) -> list[tuple[int, int, int]]:
         # previous_char = None
         current_number = ""
         is_current_number_safe = False
-        for char_index, char in enumerate(line):
+        for char_index, char in enumerate(line.strip()):
             char: str
             # if len(line) > char_index + 1:
             #     next_char = line[char_index + 1]
@@ -51,9 +52,7 @@ def extract_safe_numbers(lines: list[str]) -> list[tuple[int, int, int]]:
 
             else:
                 if current_number and is_current_number_safe:
-                    safe_numbers.append(
-                        (int(current_number), line_index, char_index)
-                    )
+                    safe_numbers.append((int(current_number), line_index, char_index))
                 current_number = ""
                 is_current_number_safe = False
 
@@ -103,28 +102,99 @@ def check_adjacent_symbols(lines: list[str], line_index: int, char_index: int) -
     [
         [
             [
-                "467..114.+",
-                "...*......",
-                "..35..633.",
-                "......#...",
-                "617*......",
-                ".....+.58.",
-                "..592.....",
-                "......755.",
-                "...$.*....",
-                ".664.598..",
+                "467..114.+\n",
+                "...*......\n",
+                "..35..633.\n",
+                "......#...\n",
+                "617*......\n",
+                ".....+.58.\n",
+                "..592.....\n",
+                "......755.\n",
+                "...$.*....\n",
+                ".664.598..\n",
+                ".........3\n",
+                "3*........\n",
+                "3.........\n",
             ],
-            [467, 35, 633, 617, 592, 755, 664, 598],
-        ]
+            [467, 35, 633, 617, 592, 755, 664, 598, 3, 3],
+        ],
+        [
+            [
+                "........",
+                ".24..4..",
+                "......*.",
+            ],
+            [4],
+        ],
+        [
+            [
+                "........",
+                ".24$-4..",
+                "......*.",
+            ],
+            [24,4],
+        ],
+        [
+            [
+                "11....11",
+                "..$..$..",
+                "11....11",
+            ],
+            [11,11,11,11],
+        ],
+        [
+            [
+                "$......$",
+                ".1....1.",
+                ".1....1.",
+                "$......$",
+            ],
+            [1,1,1,1],
+        ],
+        [
+            [
+                "$......$",
+                ".11..11.",
+                ".11..11.",
+                "$......$",
+            ],
+            [11,11,11,11],
+        ],
+        [
+            [
+                "$11",
+                "...",
+                "11$",
+                "...",
+            ],
+            [11,11],
+        ],
+        [
+            [
+                "$..",
+                ".11",
+                ".11",
+                "$..",
+                "..$",
+                "11.",
+                "11.",
+                "..$",
+            ],
+            [11,11,11,11],
+        ],
+        [
+            [
+                "11.$.",
+            ],
+            [],
+        ],
     ],
 )
 def test_extract_safe_numbers(
-        lines: list[str],
-        expected_result: list[int],
+    lines: list[str],
+    expected_result: list[int],
 ):
-    numbers = [number for number, line, char in extract_safe_numbers(
-        lines
-    )]
+    numbers = [number for number, line, char in extract_safe_numbers(lines)]
     assert numbers == expected_result
 
 
@@ -160,18 +230,18 @@ def qa_results(lines: list[str], safe_numbers: list[int, int, int]):
     #     current_index = i
     #     # if number_id > 500:
     #     #     break
-    wrapped_lines = [
-        "." * len(lines[0]),
-        *lines,
-        "." * len(lines[0])
-    ]
-    wrapped_lines = [
-        "." + line + "." for line in wrapped_lines
-    ]
+    wrapped_lines = ["." * len(lines[0]), *lines, "." * len(lines[0])]
+    wrapped_lines = ["." + line + "." for line in wrapped_lines]
     for number, line_index, last_char_index in safe_numbers:
-        line_before = wrapped_lines[line_index][last_char_index - len(str(number)): last_char_index + 2]
-        line_of_number = wrapped_lines[line_index + 1][last_char_index - len(str(number)): last_char_index + 2]
-        line_after = wrapped_lines[line_index + 2][last_char_index - len(str(number)): last_char_index + 2]
+        line_before = wrapped_lines[line_index][
+            last_char_index - len(str(number)) : last_char_index + 2
+        ]
+        line_of_number = wrapped_lines[line_index + 1][
+            last_char_index - len(str(number)) : last_char_index + 2
+        ]
+        line_after = wrapped_lines[line_index + 2][
+            last_char_index - len(str(number)) : last_char_index + 2
+        ]
         # print(line_before)
         # print(line_of_number)
         # print(line_after)
@@ -179,7 +249,6 @@ def qa_results(lines: list[str], safe_numbers: list[int, int, int]):
         #     return
         chars = {*line_before, *line_after, *line_of_number}
         symbols = {char for char in chars if char != "." and not char.isdigit()}
-        print(f"{number=}, {line_index=}, {last_char_index=}, ")
         if not symbols:
             print(line_before)
             print(line_of_number)
@@ -187,18 +256,14 @@ def qa_results(lines: list[str], safe_numbers: list[int, int, int]):
             break
 
 
-
 if __name__ == "__main__":
     with open(BASE_DIR / "input.txt", "r") as f:
         results = extract_safe_numbers(
             f.readlines(),
         )
-        # print(results)
-        # print(sorted(results))
-        # print(sum(results))
+        print(results)
+        print(sorted(results))
+        print(sum(numbers for numbers, line, last_char in results))
 
     with open(BASE_DIR / "input.txt", "r") as f:
-        qa = qa_results(
-            f.readlines(),
-            results
-        )
+        qa = qa_results(f.readlines(), results)
