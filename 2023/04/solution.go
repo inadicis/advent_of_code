@@ -25,10 +25,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	lines := strings.Split(string(content), "\n")
+	lines := strings.Split(string(content), "\r\n")
 	fmt.Println(lines)
 	totalPoints := 0
 	for _, line := range lines {
+		if line == "" {
+			continue
+		}
 		new_points, err := GetCardPoints(line)
 		if err != nil {
 			log.Fatal(err)
@@ -40,6 +43,7 @@ func main() {
 }
 
 func GetCardPoints(line string) (int, error) {
+	fmt.Println("getting points from line", line)
 	cardId, numbers, found := strings.Cut(line, ":")
 	if !found {
 		log.Fatal("Not found :")
