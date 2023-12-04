@@ -34,6 +34,10 @@ func main() {
 
 }
 
+func GetCardPoints(line string) int {
+	return 0
+}
+
 func Hello(name string) (string, error) {
 
 	if name == "" {
