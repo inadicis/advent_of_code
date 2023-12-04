@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math"
 	"math/rand"
 	"os"
 	"strconv"
@@ -30,7 +29,11 @@ func main() {
 	fmt.Println(lines)
 	totalPoints := 0
 	for _, line := range lines {
-		totalPoints += GetCardPoints(line)
+		new_points, err := GetCardPoints(line)
+		if err != nil {
+			log.Fatal(err)
+		}
+		totalPoints += new_points
 	}
 	fmt.Println("result: ", totalPoints)
 
@@ -52,6 +55,9 @@ func GetCardPoints(line string) (int, error) {
 	}
 	winning := map[int]bool{}
 	for _, number := range strings.Split(strings.Trim(winning_numbers, " "), " ") {
+		if number == "" {
+			continue
+		}
 		n, err := strconv.Atoi(number)
 		if err != nil {
 			fmt.Println("Could not recognize int from string", number)
@@ -62,6 +68,9 @@ func GetCardPoints(line string) (int, error) {
 	matches := []int{}
 
 	for _, number := range strings.Split(strings.Trim(actual_numbers, " "), " ") {
+		if number == "" {
+			continue
+		}
 		n, err := strconv.Atoi(number)
 		if err != nil {
 			fmt.Println("Could not recognize int from string", number)

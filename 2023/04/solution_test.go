@@ -39,7 +39,10 @@ var cardsTestData = []struct {
 
 func TestGetCardPoints(t *testing.T) {
 	for _, tt := range cardsTestData {
-		amount := GetCardPoints(tt.in)
+		amount, err := GetCardPoints(tt.in)
+		if err != nil {
+			t.Errorf("GetCardPoints(%q) errored: %s", tt.in, err)
+		}
 		if amount != tt.out {
 			t.Errorf("GetCardPoints(%q) expected %d, actual %d", tt.in, tt.out, amount)
 		}
