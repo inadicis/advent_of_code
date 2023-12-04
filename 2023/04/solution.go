@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
+	"strings"
+
+	"golang.org/x/text/number"
 )
 
 // go mod tidy to check dependencies
@@ -17,25 +21,48 @@ func main() {
 	// the time, source file, and line number.
 	//log.SetPrefix("greetings: ")
 	log.SetFlags(0)
-
-	// Request a greeting message.
-	message, err := Hello("Gladys")
-	// If an error was returned, print it to the console and
-	// exit the program.
+	content, err := os.ReadFile("input.txt")
+	// use a scanner next time to not hold everything in memory
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// If no error was returned, print the returned message
-	// to the console.
-	fmt.Println(message)
-
-	// ioutil.ReadFile(filename)
+	lines := strings.Split(string(content), "\n")
+	fmt.Println(lines)
+	totalPoints := 0
+	for _, line := range lines {
+		totalPoints += GetCardPoints(line)
+	}
+	fmt.Println("result: ", totalPoints)
 
 }
 
 func GetCardPoints(line string) int {
-	return 0
+	cardId, numbers, found := strings.Cut(line, ":")
+	if !found {
+		log.Fatal("Not found :")
+	}
+	winning_numbers, actual_numbers, found := strings.Cut(numbers, "|")
+
+		//numbers := strings.Split(line[len("Card 213:"):], "|")
+		//winning_numbers, actual_numbers := strings.Trim(numbers[0]), strings.Trim(numbers[1])
+		//strings.strip
+
+	if !found {
+		log.Fatal("Not found |")
+	}
+	winning := map[int]bool{}
+	for _, number := strings.Split(strings.Trim(winning_numbers), " "){
+		winning[int(number)] = true
+	}
+	matches := []int{} 
+	
+	for _, number := strings.Split(strings.Trim(actual_numbers), " "){
+		if winning[int(number)] {
+			matches = append(matches, int(number))
+		}
+	}
+	fmt.Println("matches for", cardId, ":", matches)
+	return 2**len(matches)
 }
 
 func Hello(name string) (string, error) {
@@ -107,4 +134,9 @@ Notes about Go
 
 		// range is what? not the syntax of a function. and it returns index and value? or only value?
 		// range keyword returns key, value for a map
+
+	String Formatting with %X -> have to learn all these X
+	- couldn't find what %q is, but used it for a struct
+
+	"defer" keyword ?
 */
