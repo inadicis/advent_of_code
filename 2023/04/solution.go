@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,39 +12,44 @@ import (
 // go mod tidy to check dependencies
 
 func main() {
-	// fmt.Println("Hello, World!")
-
-	// Set properties of the predefined Logger, including
-	// the log entry prefix and a flag to disable printing
-	// the time, source file, and line number.
-	//log.SetPrefix("greetings: ")
-	log.SetFlags(0)
 	content, err := os.ReadFile("input.txt")
 	// use a scanner next time to not hold everything in memory
 	if err != nil {
 		log.Fatal(err)
+		panic(err)
 	}
 	text := strings.Trim(string(content), " \r\n") //strip newlines and spaces
 	lines := strings.Split(text, "\r\n")
+	amount, err := GetAmountCard(lines)
+	if err != nil {
+		log.Fatal(err)
+		panic(err)
+	}
+	fmt.Println("result: ", amount)
+}
+
+func GetAmountCard(lines []string) (int, error) {
 	counters := make([]int, len(lines))
 	fmt.Println(len(counters))
 
-	for _, line := range lines {
-		CountCardCopies(line, counters)
+	for i := 0; i < len(counters); i++ { // we start with one card of each
+		counters[i] = 1
+	}
+
+	for i, line := range lines {
+		amountMatches, err := amountWinningMatches(line)
 		if err != nil {
-			log.Fatal(err)
+			return 0, err
+		}
+		for j := 0; j < amountMatches; j++ {
+			counters[i+j+1] += counters[i]
 		}
 	}
 	totalCards := 0
 	for _, amount := range counters {
 		totalCards += amount
 	}
-	fmt.Println("result: ", totalCards)
-
-}
-
-func CountCardCopies(line string, counters []int) {
-
+	return totalCards, nil
 }
 
 func GetCardPoints(line string) (int, error) {
@@ -60,19 +66,14 @@ func GetCardPoints(line string) (int, error) {
 }
 
 func amountWinningMatches(line string) (int, error) {
-	fmt.Println("getting points from line", line)
 	_, numbers, found := strings.Cut(line, ":")
 	if !found {
-		log.Fatal("Not found :")
+		return 0, errors.New(": is missing in the line")
 	}
 	winning_numbers, actual_numbers, found := strings.Cut(numbers, "|")
 
-	//numbers := strings.Split(line[len("Card 213:"):], "|")
-	//winning_numbers, actual_numbers := strings.Trim(numbers[0]), strings.Trim(numbers[1])
-	//strings.strip
-
 	if !found {
-		log.Fatal("Not found |")
+		return 0, errors.New("| is missing in the line")
 	}
 	winning := map[int]bool{}
 	for _, number := range strings.Split(strings.Trim(winning_numbers, " "), " ") {
