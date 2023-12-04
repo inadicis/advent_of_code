@@ -1,10 +1,8 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -25,26 +23,45 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	lines := strings.Split(string(content), "\r\n")
-	fmt.Println(lines)
-	totalPoints := 0
+	text := strings.Trim(string(content), " \r\n") //strip newlines and spaces
+	lines := strings.Split(text, "\r\n")
+	counters := make([]int, len(lines))
+	fmt.Println(len(counters))
+
 	for _, line := range lines {
-		if line == "" {
-			continue
-		}
-		new_points, err := GetCardPoints(line)
+		CountCardCopies(line, counters)
 		if err != nil {
 			log.Fatal(err)
 		}
-		totalPoints += new_points
 	}
-	fmt.Println("result: ", totalPoints)
+	totalCards := 0
+	for _, amount := range counters {
+		totalCards += amount
+	}
+	fmt.Println("result: ", totalCards)
+
+}
+
+func CountCardCopies(line string, counters []int) {
 
 }
 
 func GetCardPoints(line string) (int, error) {
+	amount, _ := amountWinningMatches(line)
+	if amount == 0 {
+		return 0, nil
+	}
+
+	points := 1
+	for i := 0; i < amount-1; i++ {
+		points *= 2
+	}
+	return points, nil
+}
+
+func amountWinningMatches(line string) (int, error) {
 	fmt.Println("getting points from line", line)
-	cardId, numbers, found := strings.Cut(line, ":")
+	_, numbers, found := strings.Cut(line, ":")
 	if !found {
 		log.Fatal("Not found :")
 	}
@@ -85,62 +102,7 @@ func GetCardPoints(line string) (int, error) {
 			matches = append(matches, n)
 		}
 	}
-	fmt.Println("matches for", cardId, ":", matches)
-	if len(matches) == 0 {
-		return 0, nil
-	}
-
-	points := 1
-	for i := 0; i < len(matches)-1; i++ {
-		points *= 2
-	}
-	return points, nil
-}
-
-func Hello(name string) (string, error) {
-
-	if name == "" {
-		return "", errors.New("empty name")
-	}
-
-	message := fmt.Sprintf(randomFormat(), name)
-	// := declares and initializes a variable, inducing its type . equivalent to:
-	// var message string
-	// message2 = fmt.Sprintf("Hello, %v, welcome!", name)
-	// unused variables  -> error in go
-
-	return message, nil
-}
-
-// Hellos returns a map that associates each of the named people
-// with a greeting message.
-func Hellos(names []string) (map[string]string, error) {
-	// A map to associate names with messages.
-	messages := make(map[string]string)
-	// Loop through the received slice of names, calling
-	// the Hello function to get a message for each name.
-	for _, name := range names {
-		message, err := Hello(name)
-		if err != nil {
-			return nil, err
-		}
-		// In the map, associate the retrieved message with
-		// the name.
-		messages[name] = message
-	}
-	return messages, nil
-}
-
-// randomFormat returns one of a set of greeting messages. The returned
-// message is selected at random.
-func randomFormat() string {
-	// A slice of message formats.
-	formats := []string{
-		"Hi, %v. Welcome!",
-		"Great to see you, %v!",
-		"Hail, %v! Well met!",
-	}
-	return formats[rand.Intn(len(formats))]
+	return len(matches), nil
 }
 
 /*
