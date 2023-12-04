@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"os"
+	"strconv"
 	"strings"
-
-	"golang.org/x/text/number"
 )
 
 // go mod tidy to check dependencies
@@ -36,33 +36,52 @@ func main() {
 
 }
 
-func GetCardPoints(line string) int {
+func GetCardPoints(line string) (int, error) {
 	cardId, numbers, found := strings.Cut(line, ":")
 	if !found {
 		log.Fatal("Not found :")
 	}
 	winning_numbers, actual_numbers, found := strings.Cut(numbers, "|")
 
-		//numbers := strings.Split(line[len("Card 213:"):], "|")
-		//winning_numbers, actual_numbers := strings.Trim(numbers[0]), strings.Trim(numbers[1])
-		//strings.strip
+	//numbers := strings.Split(line[len("Card 213:"):], "|")
+	//winning_numbers, actual_numbers := strings.Trim(numbers[0]), strings.Trim(numbers[1])
+	//strings.strip
 
 	if !found {
 		log.Fatal("Not found |")
 	}
 	winning := map[int]bool{}
-	for _, number := strings.Split(strings.Trim(winning_numbers), " "){
-		winning[int(number)] = true
+	for _, number := range strings.Split(strings.Trim(winning_numbers, " "), " ") {
+		n, err := strconv.Atoi(number)
+		if err != nil {
+			fmt.Println("Could not recognize int from string", number)
+			return 0, err
+		}
+		winning[n] = true
 	}
-	matches := []int{} 
-	
-	for _, number := strings.Split(strings.Trim(actual_numbers), " "){
-		if winning[int(number)] {
-			matches = append(matches, int(number))
+	matches := []int{}
+
+	for _, number := range strings.Split(strings.Trim(actual_numbers, " "), " ") {
+		n, err := strconv.Atoi(number)
+		if err != nil {
+			fmt.Println("Could not recognize int from string", number)
+			return 0, err
+		}
+
+		if winning[n] {
+			matches = append(matches, n)
 		}
 	}
 	fmt.Println("matches for", cardId, ":", matches)
-	return 2**len(matches)
+	if len(matches) == 0 {
+		return 0, nil
+	}
+
+	points := 1
+	for i := 0; i < len(matches)-1; i++ {
+		points *= 2
+	}
+	return points, nil
 }
 
 func Hello(name string) (string, error) {
