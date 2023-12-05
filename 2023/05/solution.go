@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"slices"
 	"sort"
@@ -23,15 +22,75 @@ func (a BySource) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a BySource) Less(i, j int) bool { return a[i].source_start < a[j].source_start }
 
 func main() {
-	result, err := solution5("input.txt")
-	if err != nil {
-		log.Fatal(err)
+	// result, err := solution5("input.txt")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Println("div", 6/2)
+	mappings := []rangedMap{
+		{source_start: 0, destination_start: 10, length: 5},
+		// rangedMap{source_start: 5, destination_start: 5, length: 5},
+		{source_start: 10, destination_start: 0, length: 5},
+		{source_start: 15, destination_start: 15, length: 3},
+		{source_start: 18, destination_start: 30, length: 4},
+		{source_start: 25, destination_start: 18, length: 4},
 	}
-	fmt.Println(result)
+	// n := 4
+	// match, index := findRelevantMap(n, mappings)
+	// fmt.Printf("Searched for n=%d, found map %+v at position %d", n, match, index)
+	filledMappings := fillGaps(mappings)
+	fmt.Printf("result: %+v", filledMappings)
+}
+
+func compressRangedMaps(firstMaps []rangedMap, secondMaps []rangedMap) []rangedMap {
+	// assumes both slices are sorted (by source_start), with no gap (see fillGaps) and no overlap
+	// for _, rangeMap := range firstMaps {
+
+	// }
+	return firstMaps
+}
+
+func fillGaps(mappings []rangedMap) []rangedMap {
+	// make all mappings explicit, by having even mappings 1:1
+	fullMapping := []rangedMap{}
+
+	current_start := 0
+	for _, m := range mappings {
+		if m.source_start != current_start {
+			newRangeMap := rangedMap{source_start: current_start, destination_start: current_start, length: m.source_start - current_start}
+			fullMapping = append(fullMapping, newRangeMap)
+		}
+		fullMapping = append(fullMapping, m)
+		current_start = m.source_start + m.length
+	}
+	fullMapping = append(fullMapping, rangedMap{source_start: current_start, destination_start: current_start, length: 10000000000})
+	// TODO length, max accepted size of n, represents positive infinite
+	return fullMapping
+}
+
+func findRelevantMap(n int, rangedMaps []rangedMap) (rangedMap, int) {
+	// assumes slice is sorted (by source_start), with no gap (see fillGaps) and no overlap
+	// binary search
+	l := 0
+	r := len(rangedMaps) - 1
+	for {
+		i := l + (r-l)/2
+		currentMap := rangedMaps[i]
+		if n < currentMap.source_start {
+			r = i - 1
+			continue
+		}
+		if n >= currentMap.source_start+currentMap.length {
+			l = i + 1
+			continue
+		}
+		return currentMap, i
+	}
+
 }
 
 /*
-Brute force solution is now implemented but will take minutes/hours to run
+Brute force solution is now implemented but will take circa 15 minutes to run
 Optimization possibilities/ideas
 - implement binary search instead of linear search for one map (minor/negligent impact)
 - don't work each seed individually, find out ranges of seeds that have same destination (with offset)
