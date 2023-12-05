@@ -30,6 +30,17 @@ func main() {
 	fmt.Println(result)
 }
 
+/*
+Brute force solution is now implemented but will take minutes/hours to run
+Optimization possibilities/ideas
+- implement binary search instead of linear search for one map (minor/negligent impact)
+- don't work each seed individually, find out ranges of seeds that have same destination (with offset)
+  -> pass groups of seeds to next step. the list of groups will grow each step, but way less than actual amount of seeds (big impact)
+- combine all maps into one to avoid repeated intermediate steps (moderate impact)
+
+Delayed implementation to later/another day
+*/
+
 func solution5(filename string) (int, error) {
 	content, err := os.ReadFile(filename)
 	// use a scanner next time to not hold everything in memory
@@ -69,8 +80,10 @@ func solution5(filename string) (int, error) {
 
 	locations := []int{}
 	for _, seedRange := range seedRanges {
+		fmt.Printf("seed range %+v\n", seedRange)
 		for i := 0; i < seedRange.length; i++ {
 			seed := seedRange.start + i
+			// fmt.Printf(" seedrange %+v, seed: %d \n", seedRange, seed)
 			current := seed
 			for _, rangedMaps := range allMaps {
 				// linear search of the correct range. A binary search should be possible though
