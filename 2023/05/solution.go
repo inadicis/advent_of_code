@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type rangedMap struct {
@@ -27,12 +28,14 @@ func maxInt() int {
 }
 
 func main() {
+	start := time.Now()
 	result, err := solution5("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("result: %d", result)
+	end := time.Now()
+	fmt.Printf("result: %d, calculated in %d ms", result, end.Sub(start).Microseconds())
 
 }
 
