@@ -33,28 +33,6 @@ func main() {
 	}
 
 	fmt.Printf("result: %d", result)
-	// mappings := []rangedMap{
-	// 	{source_start: 0, destination_start: 10, length: 5},
-	// 	// rangedMap{source_start: 5, destination_start: 5, length: 5},
-	// 	{source_start: 10, destination_start: 0, length: 5},
-	// 	{source_start: 15, destination_start: 15, length: 3},
-	// 	// {source_start: 18, destination_start: 30, length: 4},
-	// 	// {source_start: 25, destination_start: 18, length: 4},
-	// }
-	// firstMappings := fillGaps(mappings)
-	// secondMappings := fillGaps([]rangedMap{
-	// 	{source_start: 0, destination_start: 7, length: 8},
-	// 	// rangedMap{source_start: 5, destination_start: 5, length: 5},
-	// 	{source_start: 8, destination_start: 0, length: 15},
-	// })
-	// // n := 4
-	// // match, index := findRelevantMap(n, mappings)
-	// // fmt.Printf("Searched for n=%d, found map %+v at position %d", n, match, index)
-	// // filledMappings := fillGaps(mappings)
-	// // fmt.Printf("result: %+v", filledMappings)
-
-	// compressedMappings := compressRangedMaps(firstMappings, secondMappings)
-	// fmt.Printf("result: %+v", compressedMappings)
 
 }
 
@@ -63,13 +41,9 @@ func compressRangedMaps(firstMaps []rangedMap, secondMaps []rangedMap) []rangedM
 	compressedMap := []rangedMap{}
 
 	for _, firstMap := range firstMaps {
-		fmt.Printf("first Map: %+v\n", firstMap)
 		_, minIndex := findRelevantMap(firstMap.destination_start, secondMaps)
-		// fmt.Printf("  Relevant second Minimum maps: %+v\n", minMap)
 		_, maxIndex := findRelevantMap(firstMap.destination_start+firstMap.length-1, secondMaps)
-		// fmt.Printf("  Relevant second Maximum maps: %+v\n", maxMap)
 		relevantSecondMaps := secondMaps[minIndex : maxIndex+1]
-		fmt.Printf("  Relevant second maps (%d): %+v\n", len(relevantSecondMaps), relevantSecondMaps)
 
 		current_start := firstMap.source_start
 		remaining := firstMap.length
@@ -87,7 +61,6 @@ func compressRangedMaps(firstMaps []rangedMap, secondMaps []rangedMap) []rangedM
 			compressedMap = append(compressedMap, newRange)
 			current_start += length
 			remaining -= length
-			fmt.Printf("  new range: %+v\n", newRange)
 		}
 
 	}
@@ -133,17 +106,6 @@ func findRelevantMap(n int, rangedMaps []rangedMap) (rangedMap, int) {
 
 }
 
-/*
-Brute force solution is now implemented but will take circa 15 minutes to run
-Optimization possibilities/ideas
-- implement binary search instead of linear search for one map (minor/negligent impact)
-- don't work each seed individually, find out ranges of seeds that have same destination (with offset)
-  -> pass groups of seeds to next step. the list of groups will grow each step, but way less than actual amount of seeds (big impact)
-- combine all maps into one to avoid repeated intermediate steps (moderate impact)
-
-Delayed implementation to later/another day
-*/
-
 func solution5(filename string) (int, error) {
 	content, err := os.ReadFile(filename)
 	// use a scanner next time to not hold everything in memory
@@ -188,17 +150,6 @@ func solution5(filename string) (int, error) {
 		finalMappings = compressRangedMaps(finalMappings, rangedMap)
 	}
 
-	locations := []int{}
-	for _, seedRange := range seedRanges {
-		fmt.Printf("seed range %+v\n", seedRange)
-		for i := 0; i < seedRange.length; i++ {
-			seed := seedRange.start + i
-			rm, _ := findRelevantMap(seed, finalMappings)
-			locations = append(locations, rm.destination_start+seed-rm.source_start)
-		}
-
-	}
-
 	minLocations := []int{}
 
 	for _, seedRange := range seedRanges {
@@ -226,7 +177,7 @@ func solution5(filename string) (int, error) {
 		}
 
 	}
-	return slices.Min(locations), nil
+	return slices.Min(minLocations), nil
 	// return min(locations...)
 	// TODO why does that not work? min wants fixed number of parameters and not variatic????
 }
