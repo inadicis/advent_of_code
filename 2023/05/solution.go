@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"slices"
 	"sort"
@@ -26,33 +27,34 @@ func maxInt() int {
 }
 
 func main() {
-	// result, err := solution5("input.txt")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Println("div", 6/2)
-	mappings := []rangedMap{
-		{source_start: 0, destination_start: 10, length: 5},
-		// rangedMap{source_start: 5, destination_start: 5, length: 5},
-		{source_start: 10, destination_start: 0, length: 5},
-		{source_start: 15, destination_start: 15, length: 3},
-		// {source_start: 18, destination_start: 30, length: 4},
-		// {source_start: 25, destination_start: 18, length: 4},
+	result, err := solution5("input.txt")
+	if err != nil {
+		log.Fatal(err)
 	}
-	firstMappings := fillGaps(mappings)
-	secondMappings := fillGaps([]rangedMap{
-		{source_start: 0, destination_start: 7, length: 8},
-		// rangedMap{source_start: 5, destination_start: 5, length: 5},
-		{source_start: 8, destination_start: 0, length: 7},
-	})
-	// n := 4
-	// match, index := findRelevantMap(n, mappings)
-	// fmt.Printf("Searched for n=%d, found map %+v at position %d", n, match, index)
-	// filledMappings := fillGaps(mappings)
-	// fmt.Printf("result: %+v", filledMappings)
 
-	compressedMappings := compressRangedMaps(firstMappings, secondMappings)
-	fmt.Printf("result: %+v", compressedMappings)
+	fmt.Printf("result: %d", result)
+	// mappings := []rangedMap{
+	// 	{source_start: 0, destination_start: 10, length: 5},
+	// 	// rangedMap{source_start: 5, destination_start: 5, length: 5},
+	// 	{source_start: 10, destination_start: 0, length: 5},
+	// 	{source_start: 15, destination_start: 15, length: 3},
+	// 	// {source_start: 18, destination_start: 30, length: 4},
+	// 	// {source_start: 25, destination_start: 18, length: 4},
+	// }
+	// firstMappings := fillGaps(mappings)
+	// secondMappings := fillGaps([]rangedMap{
+	// 	{source_start: 0, destination_start: 7, length: 8},
+	// 	// rangedMap{source_start: 5, destination_start: 5, length: 5},
+	// 	{source_start: 8, destination_start: 0, length: 15},
+	// })
+	// // n := 4
+	// // match, index := findRelevantMap(n, mappings)
+	// // fmt.Printf("Searched for n=%d, found map %+v at position %d", n, match, index)
+	// // filledMappings := fillGaps(mappings)
+	// // fmt.Printf("result: %+v", filledMappings)
+
+	// compressedMappings := compressRangedMaps(firstMappings, secondMappings)
+	// fmt.Printf("result: %+v", compressedMappings)
 
 }
 
@@ -174,9 +176,16 @@ func solution5(filename string) (int, error) {
 	}
 
 	allMaps, err := buildMaps(text_blocks)
-
 	if err != nil {
 		return 0, err
+	}
+	filledMaps := [][]rangedMap{}
+	for _, mappings := range allMaps {
+		filledMaps = append(filledMaps, fillGaps(mappings))
+	}
+	finalMappings := filledMaps[0]
+	for _, rangedMap := range filledMaps[1:] {
+		finalMappings = compressRangedMaps(finalMappings, rangedMap)
 	}
 
 	locations := []int{}
@@ -184,23 +193,25 @@ func solution5(filename string) (int, error) {
 		fmt.Printf("seed range %+v\n", seedRange)
 		for i := 0; i < seedRange.length; i++ {
 			seed := seedRange.start + i
+			rm, _ := findRelevantMap(seed, finalMappings)
+			locations = append(locations, rm.destination_start+seed-rm.source_start)
 			// fmt.Printf(" seedrange %+v, seed: %d \n", seedRange, seed)
-			current := seed
-			for _, rangedMaps := range allMaps {
-				// linear search of the correct range. A binary search should be possible though
-				for _, rangedMap := range rangedMaps {
-					diff := current - rangedMap.source_start
-					if diff < 0 {
-						break // no map existing for this number (because sorted) (assuming no overlaps)
-					}
-					if diff < rangedMap.length {
-						current = rangedMap.destination_start + diff
-						break // map found, go to next step
-					}
-					// if there is a map, it is further down , so just continue
-				}
-			}
-			locations = append(locations, current)
+			// current := seed
+			// for _, rangedMaps := range allMaps {
+			// 	// linear search of the correct range. A binary search should be possible though
+			// 	for _, rangedMap := range rangedMaps {
+			// 		diff := current - rangedMap.source_start
+			// 		if diff < 0 {
+			// 			break // no map existing for this number (because sorted) (assuming no overlaps)
+			// 		}
+			// 		if diff < rangedMap.length {
+			// 			current = rangedMap.destination_start + diff
+			// 			break // map found, go to next step
+			// 		}
+			// 		// if there is a map, it is further down , so just continue
+			// 	}
+			// }
+			// locations = append(locations, current)
 		}
 
 	}
