@@ -195,33 +195,37 @@ func solution5(filename string) (int, error) {
 			seed := seedRange.start + i
 			rm, _ := findRelevantMap(seed, finalMappings)
 			locations = append(locations, rm.destination_start+seed-rm.source_start)
-			// fmt.Printf(" seedrange %+v, seed: %d \n", seedRange, seed)
-			// current := seed
-			// for _, rangedMaps := range allMaps {
-			// 	// linear search of the correct range. A binary search should be possible though
-			// 	for _, rangedMap := range rangedMaps {
-			// 		diff := current - rangedMap.source_start
-			// 		if diff < 0 {
-			// 			break // no map existing for this number (because sorted) (assuming no overlaps)
-			// 		}
-			// 		if diff < rangedMap.length {
-			// 			current = rangedMap.destination_start + diff
-			// 			break // map found, go to next step
-			// 		}
-			// 		// if there is a map, it is further down , so just continue
-			// 	}
-			// }
-			// locations = append(locations, current)
 		}
 
 	}
-	// min_location := locations[0]
-	// for _, location := range locations[1:] {
-	// 	if location < min_location {
-	// 		min_location = location
-	// 	}
-	// }
-	// return min_location
+
+	minLocations := []int{}
+
+	for _, seedRange := range seedRanges {
+		// TODO duplicated with compress function
+		_, minIndex := findRelevantMap(seedRange.start, finalMappings)
+		_, maxIndex := findRelevantMap(seedRange.start+seedRange.length, finalMappings)
+		relevantMaps := finalMappings[minIndex : maxIndex+1]
+		// we only need the minimum, so we can simply check the first value for each of these relevant maps
+
+		current_start := seedRange.start
+		remaining := seedRange.length
+		for _, secondMap := range relevantMaps {
+			startOffset := seedRange.start - secondMap.source_start
+			length := secondMap.length
+			destination_start := secondMap.destination_start
+			if startOffset > 0 {
+				destination_start += startOffset
+				length -= startOffset
+			}
+			minLocations = append(minLocations, destination_start)
+
+			length = min(remaining, length) // avoid endOffset
+			current_start += length
+			remaining -= length
+		}
+
+	}
 	return slices.Min(locations), nil
 	// return min(locations...)
 	// TODO why does that not work? min wants fixed number of parameters and not variatic????
