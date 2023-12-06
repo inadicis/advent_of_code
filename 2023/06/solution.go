@@ -54,13 +54,14 @@ func amountBetterPossibilities(time int, distance int) int {
 	// result := int(t - 2*math.Floor((t-math.Sqrt(t*t+4*d))/2+1))
 	// fmt.Printf(" t=%d, d=%d, result: %d\n", time, distance, result)
 	// return result
-	result := 0
+	// result := 0
 	for i := 1; i < time; i++ {
 		if calcDist(i, time) > distance {
-			result++
+			return time - 2*(i-1) - 1
 		}
 	}
-	return result
+	return 0
+	// return result
 }
 
 func amountWaysToBeatWR(filename string) (amounts []int, err error) {
