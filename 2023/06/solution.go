@@ -9,17 +9,17 @@ import (
 )
 
 func main() {
-	ways, err := amountWaysToBeatWR("input.txt")
+	amount, err := amountWaysToBeatWR("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(ways)
-	product := 1
-	for _, amount := range ways {
-		product *= amount
-	}
-	fmt.Println(product)
+	fmt.Println(amount)
+	// product := 1
+	// for _, amount := range ways {
+	// 	product *= amount
+	// }
+	// fmt.Println(product)
 }
 
 func extractInts(line string, skip int) (values []int, err error) {
@@ -36,6 +36,22 @@ func extractInts(line string, skip int) (values []int, err error) {
 		values = append(values, v)
 	}
 	return values, nil
+}
+
+func extractInt(line string, skip int) (value int, err error) {
+	elements := strings.Split(strings.Trim(line, " \r\n"), " ")
+	v := ""
+	for i, element := range elements {
+		if i < skip || element == "" {
+			continue
+		}
+		v += element
+		// rest should be the value
+		// values = append(values, v)
+	}
+
+	result, err := strconv.Atoi(v)
+	return result, err
 }
 
 func calcDist(pressedDuration int, raceDuration int) int {
@@ -64,28 +80,23 @@ func amountBetterPossibilities(time int, distance int) int {
 	// return result
 }
 
-func amountWaysToBeatWR(filename string) (amounts []int, err error) {
+func amountWaysToBeatWR(filename string) (amount int, err error) {
 	text, err := os.ReadFile(filename)
 
 	if err != nil {
-		return []int{}, err
+		return 0, err
 	}
 	// strings.Trim(string(content), " \r\n")
 	timesLine, distancesLine, _ := strings.Cut(string(text), "\r\n")
-	durations, err := extractInts(timesLine, 1)
+	duration, err := extractInt(timesLine, 1)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	distances, err := extractInts(distancesLine, 1)
+	distance, err := extractInt(distancesLine, 1)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	fmt.Println(durations, distances)
-	for i, duration := range durations {
-		distance := distances[i]
-		amounts = append(amounts, amountBetterPossibilities(duration, distance))
-	}
-	return amounts, nil
+	return amountBetterPossibilities(duration, distance), nil
 
 }
 
