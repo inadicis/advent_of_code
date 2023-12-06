@@ -21,6 +21,10 @@ func (a BySource) Len() int           { return len(a) }
 func (a BySource) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a BySource) Less(i, j int) bool { return a[i].source_start < a[j].source_start }
 
+func maxInt() int {
+	return 10000000000
+}
+
 func main() {
 	// result, err := solution5("input.txt")
 	// if err != nil {
@@ -32,22 +36,60 @@ func main() {
 		// rangedMap{source_start: 5, destination_start: 5, length: 5},
 		{source_start: 10, destination_start: 0, length: 5},
 		{source_start: 15, destination_start: 15, length: 3},
-		{source_start: 18, destination_start: 30, length: 4},
-		{source_start: 25, destination_start: 18, length: 4},
+		// {source_start: 18, destination_start: 30, length: 4},
+		// {source_start: 25, destination_start: 18, length: 4},
 	}
+	firstMappings := fillGaps(mappings)
+	secondMappings := fillGaps([]rangedMap{
+		{source_start: 0, destination_start: 7, length: 8},
+		// rangedMap{source_start: 5, destination_start: 5, length: 5},
+		{source_start: 8, destination_start: 0, length: 7},
+	})
 	// n := 4
 	// match, index := findRelevantMap(n, mappings)
 	// fmt.Printf("Searched for n=%d, found map %+v at position %d", n, match, index)
-	filledMappings := fillGaps(mappings)
-	fmt.Printf("result: %+v", filledMappings)
+	// filledMappings := fillGaps(mappings)
+	// fmt.Printf("result: %+v", filledMappings)
+
+	compressedMappings := compressRangedMaps(firstMappings, secondMappings)
+	fmt.Printf("result: %+v", compressedMappings)
+
 }
 
 func compressRangedMaps(firstMaps []rangedMap, secondMaps []rangedMap) []rangedMap {
 	// assumes both slices are sorted (by source_start), with no gap (see fillGaps) and no overlap
-	// for _, rangeMap := range firstMaps {
+	compressedMap := []rangedMap{}
 
-	// }
-	return firstMaps
+	for _, firstMap := range firstMaps {
+		fmt.Printf("first Map: %+v\n", firstMap)
+		_, minIndex := findRelevantMap(firstMap.destination_start, secondMaps)
+		// fmt.Printf("  Relevant second Minimum maps: %+v\n", minMap)
+		_, maxIndex := findRelevantMap(firstMap.destination_start+firstMap.length-1, secondMaps)
+		// fmt.Printf("  Relevant second Maximum maps: %+v\n", maxMap)
+		relevantSecondMaps := secondMaps[minIndex : maxIndex+1]
+		fmt.Printf("  Relevant second maps (%d): %+v\n", len(relevantSecondMaps), relevantSecondMaps)
+
+		current_start := firstMap.source_start
+		remaining := firstMap.length
+		for _, secondMap := range relevantSecondMaps { // TODO careful if second ranges are more large than first map (min, max around!)
+			startOffset := firstMap.destination_start - secondMap.source_start
+			length := secondMap.length
+			destination_start := secondMap.destination_start
+			if startOffset > 0 { // can only happen with the first of relevantSecondMaps
+				destination_start += startOffset
+				length -= startOffset
+			}
+
+			length = min(remaining, length) // avoid endOffset
+			newRange := rangedMap{source_start: current_start, destination_start: destination_start, length: length}
+			compressedMap = append(compressedMap, newRange)
+			current_start += length
+			remaining -= length
+			fmt.Printf("  new range: %+v\n", newRange)
+		}
+
+	}
+	return compressedMap
 }
 
 func fillGaps(mappings []rangedMap) []rangedMap {
@@ -63,7 +105,7 @@ func fillGaps(mappings []rangedMap) []rangedMap {
 		fullMapping = append(fullMapping, m)
 		current_start = m.source_start + m.length
 	}
-	fullMapping = append(fullMapping, rangedMap{source_start: current_start, destination_start: current_start, length: 10000000000})
+	fullMapping = append(fullMapping, rangedMap{source_start: current_start, destination_start: current_start, length: maxInt() - current_start})
 	// TODO length, max accepted size of n, represents positive infinite
 	return fullMapping
 }
