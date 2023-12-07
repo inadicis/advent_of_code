@@ -35,8 +35,8 @@ func (a SortByHand) Less(i, j int) bool { return a[i] < a[j] }
 func compareHands(line1 string, line2 string) int {
 	hand1, _, _ := strings.Cut(line1, " ")
 	hand2, _, _ := strings.Cut(line2, " ")
-	primary1, secondary1 := getHandValue(hand1)
-	primary2, secondary2 := getHandValue(hand2)
+	primary1, secondary1 := getHandValue(hand1, 'J')
+	primary2, secondary2 := getHandValue(hand2, 'J')
 	primaryDiff := primary1 - primary2
 	if primaryDiff != 0 {
 		return primaryDiff
@@ -49,7 +49,7 @@ func compareHands(line1 string, line2 string) int {
 		'A': 14,
 		'K': 13,
 		'Q': 12,
-		'J': 11,
+		'J': 0,
 		'T': 10,
 	}
 	for i, card1 := range hand1 {
@@ -70,31 +70,27 @@ func getCardValue(card rune, cardValues map[rune]int) int {
 	return cardValues[card]
 }
 
-func getHandValue(hand string) (int, int) {
+func getHandValue(hand string, joker rune) (int, int) {
 	counts := map[rune]int{}
 	for _, card := range hand {
 		counts[card]++
 	}
 	primary, secondary := 0, 0
-	for _, count := range counts {
-		if count > primary {
-			secondary = primary
-			primary = count
-		} else if count > secondary {
-			secondary = count
+	for card, count := range counts {
+		if card != joker {
+			if count > primary {
+				secondary = primary
+				primary = count
+			} else if count > secondary {
+				secondary = count
+			}
 		}
 	}
-	return primary, secondary
+	return primary + counts[joker], secondary
 
 }
 
 func getResult(filename string) (int, error) {
-	// A, K, Q, J, T, 9, 8, 7, 6, 5, 4, 3, or 2
-	// 	32T3K 765
-	// T55J5 684
-	// KK677 28
-	// KTJJT 220
-	// QQQJA
 	text, err := os.ReadFile(filename)
 	if err != nil {
 		return 0, err

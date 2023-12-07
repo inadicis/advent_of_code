@@ -9,7 +9,7 @@ func TestSolution(t *testing.T) {
 	if err != nil {
 		t.Errorf("Function failed %s", err)
 	}
-	expected := 6440
+	expected := 5905
 	if result != expected {
 		t.Errorf("Expected %d, got %d", expected, result)
 	}
