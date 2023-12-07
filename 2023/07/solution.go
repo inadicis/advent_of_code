@@ -15,22 +15,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// s := "Hello World"
-	// for i, r := range s {
-	// 	fmt.Printf("Range %d, type:%T, r= %#v, r=%d \n", i, r, r, r)
-	// }
-	// for i := 0; i < len(s); i++ {
-	// 	fmt.Printf("index accessing hello[%d], type: %T v=%#v, r=%d \n", i, s[i], s[i], s[i])
-	// }
-
 	fmt.Println(r)
 }
-
-type SortByHand []string
-
-func (a SortByHand) Len() int           { return len(a) }
-func (a SortByHand) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a SortByHand) Less(i, j int) bool { return a[i] < a[j] }
 
 func compareHands(line1 string, line2 string) int {
 	hand1, _, _ := strings.Cut(line1, " ")
