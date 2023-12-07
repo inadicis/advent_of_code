@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -61,23 +62,25 @@ func calcDist(pressedDuration int, raceDuration int) int {
 	return (raceDuration - pressedDuration) * pressedDuration
 }
 
-func amountBetterPossibilities(time int, distance int) int {
-	// x0 = (t - (t^2 + 4*d)^0.5)/2
-	// solution = t - 2 * floor((t - (t^2 + 4*d)^0.5)/2 + 1)
-	// t := float64(time)
-	// d := float64(distance)
-	// fmt.Printf("%f - 2*floor((%f - (%f*%f + 4*%f)^0.5)/2 + 1)", t, t, t, t, d)
-	// result := int(t - 2*math.Floor((t-math.Sqrt(t*t+4*d))/2+1))
-	// fmt.Printf(" t=%d, d=%d, result: %d\n", time, distance, result)
-	// return result
-	// result := 0
-	for i := 1; i < time; i++ {
-		if calcDist(i, time) > distance {
-			return time - 2*(i-1) - 1
-		}
-	}
+func amountBetterPossibilities(maxTime int, distance int) int {
+	// d < (maxTime - x) * x
+	// -x^2 + maxTime * x - distance > 0
+	delta := maxTime*maxTime - 4*distance
+	sqrtDelta := math.Sqrt(float64(delta))
+	x0 := int(math.Floor((float64(maxTime)-sqrtDelta)/2 + 1))
+
+	// x1 := (float64(maxTime)+sqrtDelta)/2 + 1
+	// fmt.Println("x0 ", x0, "x1", x1)
+	return maxTime - 2*(x0-1) - 1
+
+	// for i := 1; i < maxTime; i++ {
+	// 	// could do binary search instead of linear search
+	// 	if calcDist(i, maxTime) > distance {
+	// 		fmt.Println("i ", i)
+	// 		return maxTime - 2*(i-1) - 1
+	// 	}
+	// }
 	return 0
-	// return result
 }
 
 func amountWaysToBeatWR(filename string) (amount int, err error) {
