@@ -8,6 +8,32 @@ import (
 	"strings"
 )
 
+// An IntHeap is a min-heap of ints.
+type Way struct {
+	position Position
+	distance int
+}
+
+type WayHeap []Way
+
+func (h WayHeap) Len() int           { return len(h) }
+func (h WayHeap) Less(i, j int) bool { return h[i].distance < h[j].distance }
+func (h WayHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *IntHeap) Push(x any) {
+	// Push and Pop use pointer receivers because they modify the slice's length,
+	// not just its contents.
+	*h = append(*h, x.(int))
+}
+
+func (h *IntHeap) Pop() any {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
+}
+
 func main() {
 	r, err := getResultPart2("input.txt")
 	if err != nil {
