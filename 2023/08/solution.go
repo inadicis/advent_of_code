@@ -8,6 +8,28 @@ import (
 	"strings"
 )
 
+func main() {
+	r, err := getResultPart2("input.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(r)
+	// 	instructionsList := []string{
+	// 		"a",
+	// 		"aa",
+	// 		"aaaaaaa",
+	// 		"ab",
+	// 		"aaabb",
+	// 		"abab",
+	// 		"ababab",
+	// 		"aaaabbaaaa",
+	// 		"abcaaaabcabcaaaabc",
+	// 	}
+	// 	for _, instructions := range instructionsList {
+	// 		fmt.Printf("simplifying(%s) -> %s\n", instructions, simplifyInstructions(instructions))
+	// 	}
+}
+
 // An IntHeap is a min-heap of ints.
 type Way struct {
 	position Position
@@ -33,14 +55,6 @@ func (h *WayHeap) Pop() any {
 	x := old[n-1]
 	*h = old[0 : n-1]
 	return x
-}
-
-func main() {
-	r, err := getResultPart2("input.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(r)
 }
 
 func getResultPart1(filename string) (int, error) {
@@ -193,13 +207,13 @@ func isStart(node string) bool {
 // }
 
 type Cycle struct {
-	position         int
+	offset           int // where does it start
 	length           int
 	node             string
-	nextInstructions string
+	instructionIndex int
 	// exits            []Exit
-	exitsInCycle     []Exit
-	exitsBeforeCycle []Exit
+	// exitsInCycle     []Exit
+	// exitsBeforeCycle []Exit
 }
 
 type Position struct {
@@ -214,6 +228,21 @@ type Exit struct {
 	distance int
 }
 
+func simplifyInstructions(instructions string) string {
+	i := 1
+	for i < len(instructions) {
+		// fmt.Printf(" i: %d, p1: %s, p2: %s", i, instructions[:i], instructions[i:])
+		if instructions == instructions[i:]+instructions[:i] {
+
+			// fmt.Printf("  found cycle at %d: %v\n", i, instructions[:i])
+			return instructions[:i]
+		}
+		i++
+	}
+	// fmt.Printf("  No cycle found in %s", instructions)
+	return instructions
+}
+
 func findCycle(startNode string, instructions string, directions map[string][2]string) (Cycle, error) {
 	var i int
 	currentPosition := Position{
@@ -224,33 +253,34 @@ func findCycle(startNode string, instructions string, directions map[string][2]s
 
 	exits := []Exit{}
 	visitedPositions := make(map[Position]int)
+	instructions = simplifyInstructions(instructions)
 	for {
 		if isExit(currentPosition.node) {
 			exits = append(exits, Exit{node: currentPosition.node, distance: i})
 		}
 		startIndex, visited := visitedPositions[currentPosition]
 		if visited {
-			firstExitInCycleIndex := 0
-			for i, exit := range exits {
-				if exit.distance >= startIndex {
-					firstExitInCycleIndex = i
-					break
-				}
-			}
+			// firstExitInCycleIndex := 0
+			// for i, exit := range exits {
+			// if exit.distance >= startIndex {
+			// firstExitInCycleIndex = i
+			// break
+			// }
+			// }
 			return Cycle{
-				position:         startIndex,
+				offset:           startIndex,
 				length:           i - startIndex,
 				node:             currentPosition.node,
-				nextInstructions: currentPosition.nextInstructions,
-				exitsInCycle:     exits[firstExitInCycleIndex:],
-				exitsBeforeCycle: exits[:firstExitInCycleIndex],
+				instructionIndex: currentInstructionIndex,
+				// exitsInCycle:     exits[firstExitInCycleIndex:],
+				// exitsBeforeCycle: exits[:firstExitInCycleIndex],
 			}, nil
 		}
 		visitedPositions[currentPosition] = i
 		i++
 		currentInstructionIndex++
 		if currentInstructionIndex == len(instructions) {
-			// could use >= or modulus but this should be fastest
+			// could use >= or modulus but this should be faster
 			currentInstructionIndex = 0
 		}
 		// nextNode :=
@@ -315,9 +345,14 @@ func getResultPart2(filename string) (int, error) {
 		// currentWays[i] = Way{distance: 0, position: Position{instructionIndex: 0, node: node}}
 		// waysHeap[i] = &Way{distance: 0, position: Position{instructionIndex: 0, node: node}}
 		foundCycles[i], err = findCycle(node, instructions, directions)
+		if err != nil {
+			return 0, err
+		}
+		fmt.Printf("For startNode %s, found cycle of length %d, starting after %d steps at node %s\n", node, foundCycles[i].length, foundCycles[i].offset, foundCycles[i].node)
 	}
-	fmt.Println()
-	fmt.Printf("found cycles %#v", foundCycles)
+	// fmt.Println()
+	// fmt.Printf("found cycles %#v", foundCycles)
+
 	return 0, nil
 
 	// heap.Init(&waysHeap)
