@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/heap"
 	"errors"
 	"fmt"
 	"log"
@@ -14,19 +15,19 @@ type Way struct {
 	distance int
 }
 
-type WayHeap []Way
+type WayHeap []*Way
 
 func (h WayHeap) Len() int           { return len(h) }
 func (h WayHeap) Less(i, j int) bool { return h[i].distance < h[j].distance }
 func (h WayHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 
-func (h *IntHeap) Push(x any) {
+func (h *WayHeap) Push(x any) {
 	// Push and Pop use pointer receivers because they modify the slice's length,
 	// not just its contents.
-	*h = append(*h, x.(int))
+	*h = append(*h, x.(*Way))
 }
 
-func (h *IntHeap) Pop() any {
+func (h *WayHeap) Pop() any {
 	old := *h
 	n := len(old)
 	x := old[n-1]
@@ -105,24 +106,39 @@ func isExit(node string) bool {
 }
 
 func calculateNextExit(position Position, instructions string, nodesMap map[string][2]string) (NextExit, error) {
-	var instruction int
-	if instructions[position.instructionIndex] == 'R' {
-		instruction = 1
-	} else if instructions[position.instructionIndex] != 'L' {
-		return NextExit{}, fmt.Errorf("Instruction not parsable at i: %d", position.instructionIndex)
-	}
+	fmt.Printf("   Calculating next exit for %T, %v, ...\n", position, position)
 
+	instructionI := position.instructionIndex
 	currentNode := position.node
 	var steps int
-	for ; !isExit(currentNode); steps++ {
-		// fmt.Printf("  i %d, currentNode %s\n", i, currentNode)
+	for {
+		steps++
+		var instruction int
+		if instructions[instructionI] == 'R' {
+			instruction = 1
+		} else if instructions[instructionI] != 'L' {
+			return NextExit{}, fmt.Errorf("Instruction not parsable at i: %d", instructionI)
+		}
 		possibleNodes, exists := nodesMap[currentNode]
 		if !exists {
 			return NextExit{}, fmt.Errorf("No node found for %s", currentNode)
 		}
 
 		// fmt.Printf("Step %d, instructionI %d, instruction: %d, possibleNodes %v\n", steps, currentInstructionIndex, instruction, possibleNodes)
-		currentNode = possibleNodes[instruction]
+		nextNode := possibleNodes[instruction]
+		fmt.Printf("    i %d, currentNode %s\n", steps, currentNode)
+		if nextNode == currentNode {
+			return NextExit{}, fmt.Errorf("Entered Infinite loop while looking for exit for %T %v, final node: %s", position, position, nextNode)
+		}
+		currentNode = nextNode
+		if isExit(currentNode) {
+			fmt.Printf("   nextNode %v is exit -> break\n", nextNode)
+			break
+		}
+		instructionI++
+		if instructionI >= len(instructions) {
+			instructionI = instructionI % len(instructions)
+		}
 	}
 	return NextExit{distance: steps, node: currentNode}, nil
 }
@@ -141,7 +157,7 @@ func InitCachedGetNextExit(instructions string, nodesMap map[string][2]string) f
 	var cache = make(map[Position]NextExit)
 	return func(position Position) (NextExit, error) {
 		if retrieved, ok := cache[position]; ok {
-			fmt.Println("from cache")
+			fmt.Print(" (cached)")
 			return retrieved, nil
 		}
 		r, err := calculateNextExit(position, instructions, nodesMap)
@@ -152,6 +168,23 @@ func InitCachedGetNextExit(instructions string, nodesMap map[string][2]string) f
 		return r, nil
 	}
 
+}
+
+func allSameDistance(waysHeap *WayHeap) bool {
+	d := (*waysHeap)[0].distance
+	// if d == 0 {
+	// 	return false
+	// }
+	fmt.Printf("Heap: [")
+	for _, way := range *waysHeap {
+		fmt.Printf(" %v, ", way)
+		if way.distance != d {
+			fmt.Printf("...]\n")
+			return false
+		}
+	}
+	fmt.Printf("]\n")
+	return true
 }
 
 func getResultPart2(filename string) (int, error) {
@@ -190,54 +223,96 @@ func getResultPart2(filename string) (int, error) {
 
 	getNextExit := InitCachedGetNextExit(instructionsLine, nodes)
 
-	// fmt.Printf("startNodes %v\n", startNodes)
-	currentPositions := make([]Position, len(startNodes))
+	fmt.Printf("startNodes %v\n", startNodes)
+	// currentWays := make([]Way, len(startNodes))
+	waysHeap := make(WayHeap, len(startNodes))
+
 	for i, node := range startNodes {
-		currentPositions[i] = Position{instructionIndex: 0, node: node}
+		// currentWays[i] = Way{distance: 0, position: Position{instructionIndex: 0, node: node}}
+		waysHeap[i] = &Way{distance: 0, position: Position{instructionIndex: 0, node: node}}
 	}
-	amountCopied := copy(currentNodes, startNodes) // why does copy not work?
-	fmt.Printf(" amount copied: %d\n", amountCopied)
-	// fmt.Printf("currentNodes %v\n", currentNodes)
-	var currentInstructionIndex int
-	var instruction int
-	var steps int
+
+	// h := WayHeap(currentWays)
+	heap.Init(&waysHeap)
+	// heap.Push(h, 3)
+	// fmt.Printf("minimum: %d\n", (*h)[0])
+
+	// for h.Len() > 0 {
+	// 	fmt.Printf("%d ", heap.Pop(h))
+	// }
+
+	var minWay *Way
+	counter := 0
+	fmt.Printf("Heap at start: %#v\n", waysHeap)
 	for {
-		looksGood := true
-		if instructionsLine[currentInstructionIndex] == 'R' {
-			instruction = 1
-		} else if instructionsLine[currentInstructionIndex] == 'L' {
-			instruction = 0 // could be removed but I want the defensive last else
-		} else {
-			return 0, fmt.Errorf("Instruction not parsable at i: %d", currentInstructionIndex)
+		counter++
+		// if counter > 10 {
+		// 	break
+		// }
+		fmt.Printf(" i: %d", counter)
+		minWay = heap.Pop(&waysHeap).(*Way) // Type assertion
+		fmt.Printf("  Processing %T %#v , %v ...", minWay, minWay, minWay)
+		nextExit, err := getNextExit(minWay.position)
+		if err != nil {
+			return 0, err
 		}
-		steps++
-		if steps%1000000 == 0 {
-			fmt.Printf("step %d, currentNodes %v\n", steps, currentNodes)
-		}
-		for i, currentNode := range currentNodes {
-			// fmt.Printf("  i %d, currentNode %s\n", i, currentNode)
-			possibleNodes, exists := nodes[currentNode]
-			if !exists {
-				return 0, fmt.Errorf("No node found for %s", currentNode)
-			}
+		fmt.Printf("  found next %T %#v , %v \n", nextExit, nextExit, nextExit)
+		newDistance := minWay.distance + nextExit.distance
+		heap.Push(&waysHeap, &Way{
+			distance: newDistance,
+			position: Position{
+				instructionIndex: newDistance % len(instructionsLine),
+				node:             nextExit.node,
+			}},
+		)
 
-			// fmt.Printf("Step %d, instructionI %d, instruction: %d, possibleNodes %v\n", steps, currentInstructionIndex, instruction, possibleNodes)
-			currentNode = possibleNodes[instruction]
-
-			if currentNode[len(currentNode)-1] != 'Z' {
-				looksGood = false
-			}
-			currentNodes[i] = currentNode
+		if allSameDistance(&waysHeap) {
+			break
 		}
-		if looksGood {
-			return steps, nil
-		}
-
-		currentInstructionIndex++
-		if currentInstructionIndex >= len(instructionsLine) {
-			currentInstructionIndex = currentInstructionIndex % len(instructionsLine)
-		}
-
 	}
+	finalWay := heap.Pop(&waysHeap).(*Way)
+	fmt.Printf("Calculation Completed after %d iterations. distance: %d\n", counter, finalWay.distance)
+	return finalWay.distance, nil
+	// var currentInstructionIndex int
+	// var instruction int
+	// var steps int
+	// for {
+	// 	looksGood := true
+	// 	if instructionsLine[currentInstructionIndex] == 'R' {
+	// 		instruction = 1
+	// 	} else if instructionsLine[currentInstructionIndex] == 'L' {
+	// 		instruction = 0 // could be removed but I want the defensive last else
+	// 	} else {
+	// 		return 0, fmt.Errorf("Instruction not parsable at i: %d", currentInstructionIndex)
+	// 	}
+	// 	steps++
+	// 	if steps%1000000 == 0 {
+	// 		fmt.Printf("step %d, currentNodes %v\n", steps, currentNodes)
+	// 	}
+	// 	for i, currentNode := range currentNodes {
+	// 		// fmt.Printf("  i %d, currentNode %s\n", i, currentNode)
+	// 		possibleNodes, exists := nodes[currentNode]
+	// 		if !exists {
+	// 			return 0, fmt.Errorf("No node found for %s", currentNode)
+	// 		}
+
+	// 		// fmt.Printf("Step %d, instructionI %d, instruction: %d, possibleNodes %v\n", steps, currentInstructionIndex, instruction, possibleNodes)
+	// 		currentNode = possibleNodes[instruction]
+
+	// 		if currentNode[len(currentNode)-1] != 'Z' {
+	// 			looksGood = false
+	// 		}
+	// 		currentNodes[i] = currentNode
+	// 	}
+	// 	if looksGood {
+	// 		return steps, nil
+	// 	}
+
+	// 	currentInstructionIndex++
+	// 	if currentInstructionIndex >= len(instructionsLine) {
+	// 		currentInstructionIndex = currentInstructionIndex % len(instructionsLine)
+	// 	}
+
+	// }
 
 }
