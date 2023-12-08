@@ -1,4 +1,4 @@
-LRRR
+LLRR
 
 11A = (11B, XXX)
 11B = (XXX, 11Z)

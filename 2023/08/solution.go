@@ -211,7 +211,7 @@ type Cycle struct {
 	length           int
 	node             string
 	instructionIndex int
-	// exits            []Exit
+	exits            []Exit
 	// exitsInCycle     []Exit
 	// exitsBeforeCycle []Exit
 }
@@ -272,6 +272,7 @@ func findCycle(startNode string, instructions string, directions map[string][2]s
 				length:           i - startIndex,
 				node:             currentPosition.node,
 				instructionIndex: currentInstructionIndex,
+				exits:            exits,
 				// exitsInCycle:     exits[firstExitInCycleIndex:],
 				// exitsBeforeCycle: exits[:firstExitInCycleIndex],
 			}, nil
@@ -348,10 +349,15 @@ func getResultPart2(filename string) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		fmt.Printf("For startNode %s, found cycle of length %d, starting after %d steps at node %s\n", node, foundCycles[i].length, foundCycles[i].offset, foundCycles[i].node)
+		fmt.Printf("For startNode %s, found cycle of length %d, starting after %d steps at node %s. Exit after %d steps \n", node, foundCycles[i].length, foundCycles[i].offset, foundCycles[i].node, foundCycles[i].exits[0].distance)
 	}
-	// fmt.Println()
-	// fmt.Printf("found cycles %#v", foundCycles)
+	lcmCyclesLengths := 1
+	for _, cycle := range foundCycles {
+		lcmCyclesLengths = lcm(lcmCyclesLengths, cycle.length)
+	}
+	fmt.Printf("LCM all all cycles: %d", lcmCyclesLengths)
+
+	// for all 6 startNodes, the cycle starts at the 2nd , and only 1 exit for each cycle
 
 	return 0, nil
 
@@ -432,5 +438,19 @@ func getResultPart2(filename string) (int, error) {
 	// 	}
 
 	// }
+
+}
+
+func gcd(a int, b int) int {
+	// a <= b
+	if a == 0 {
+		return b
+	}
+	return gcd(b%a, a)
+
+}
+
+func lcm(a int, b int) int {
+	return (a / gcd(a, b)) * b
 
 }
