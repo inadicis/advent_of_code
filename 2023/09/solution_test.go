@@ -1,10 +1,11 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 )
 
-func TestExtractData(t testing.T) {
+func TestExtractData(t *testing.T) {
 	fileName := "test_data.txt"
 	expected := [][]int{
 		{0, 3, 6, 9, 12, 15},
@@ -16,7 +17,7 @@ func TestExtractData(t testing.T) {
 	if err != nil {
 		t.Errorf("ExtractData failed: %s", err)
 	}
-	if expected != actual {
+	if reflect.DeepEqual(expected, actual) {
 		t.Errorf("expected %d, got %d", expected, actual)
 	}
 }
