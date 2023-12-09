@@ -16,32 +16,57 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println(rows)
-	r := 0
+	sumForward := 0
+	sumBackward := 0
 
-	for i, row := range rows {
-
-		deepness, found := FindDeepnessOf0Row(row)
-		if !found {
-			log.Fatalf("No 0-filled row for start row %d", i)
-		}
-		deeperRowLastValue := 0
-		for d := deepness - 1; d >= 0; d-- {
-			currentRowLastValue := calcValue(row, d, len(row)-d-1)
-			deeperRowLastValue = deeperRowLastValue + currentRowLastValue
-		}
-		rows[i] = append(row, deeperRowLastValue)
-		fmt.Println(row)
-		r += deeperRowLastValue
-	}
-	fmt.Println(r)
-	result := 0
 	for _, row := range rows {
-		result += row[len(row)-1]
+		nextForward, err := ExtrapolateForward(row)
+		if err != nil {
+			log.Fatal(err)
+		}
+		sumForward += nextForward
+
+		nextBackward, err := ExtrapolateBackward(row)
+		if err != nil {
+			log.Fatal(err)
+		}
+		sumBackward += nextBackward
+
 	}
-	fmt.Println(result) // 952946799
+	fmt.Println(sumForward, sumBackward) // 952946799
 
 	// fmt.Println(quote.Glass())
 	// fmt.Println(combin.Binomial(4, 4))
+}
+
+func ExtrapolateForward(row []int) (int, error) {
+	deepness, found := FindDeepnessOf0Row(row)
+	if !found {
+		return 0, fmt.Errorf("No 0-filled row for start row %v", row)
+	}
+	deeperRowLastValue := 0
+	for d := deepness - 1; d >= 0; d-- {
+		currentRowLastValue := calcValue(row, d, len(row)-d-1)
+		deeperRowLastValue = deeperRowLastValue + currentRowLastValue
+	}
+	return deeperRowLastValue, nil
+
+}
+
+func ExtrapolateBackward(row []int) (int, error) {
+	deepness, found := FindDeepnessOf0Row(row)
+	if !found {
+		return 0, fmt.Errorf("No 0-filled row for start row %v", row)
+	}
+	deeperRowFirstValue := 0
+	for d := deepness - 1; d >= 0; d-- {
+		currentRowFirstValue := calcValue(row, d, 0)
+		// we already calculated this one, could cache it
+
+		deeperRowFirstValue = currentRowFirstValue - deeperRowFirstValue
+	}
+	return deeperRowFirstValue, nil
+
 }
 
 func ExtractData(filename string) ([][]int, error) {
