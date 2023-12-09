@@ -217,7 +217,7 @@ type Cycle struct {
 }
 
 type Position struct {
-	nextInstructions string // instead of saving only the index, we save the concatenation to detect even tinier cycles
+	instructionIndex int
 	node             string
 	// todo careful about cycles where L/R are not relevant, could be tinier than here
 	// if destination[XXX][0] == destination[XXX][1]
@@ -230,7 +230,7 @@ type Exit struct {
 
 func simplifyInstructions(instructions string) string {
 	i := 1
-	for i < len(instructions) {
+	for i < len(instructions)/2 {
 		// fmt.Printf(" i: %d, p1: %s, p2: %s", i, instructions[:i], instructions[i:])
 		if instructions == instructions[i:]+instructions[:i] {
 
@@ -247,13 +247,11 @@ func findCycle(startNode string, instructions string, directions map[string][2]s
 	var i int
 	currentPosition := Position{
 		node:             startNode,
-		nextInstructions: instructions,
+		instructionIndex: 0,
 	}
-	currentInstructionIndex := 0
 
 	exits := []Exit{}
 	visitedPositions := make(map[Position]int)
-	instructions = simplifyInstructions(instructions)
 	for {
 		if isExit(currentPosition.node) {
 			exits = append(exits, Exit{node: currentPosition.node, distance: i})
@@ -271,7 +269,7 @@ func findCycle(startNode string, instructions string, directions map[string][2]s
 				offset:           startIndex,
 				length:           i - startIndex,
 				node:             currentPosition.node,
-				instructionIndex: currentInstructionIndex,
+				instructionIndex: currentPosition.instructionIndex,
 				exits:            exits,
 				// exitsInCycle:     exits[firstExitInCycleIndex:],
 				// exitsBeforeCycle: exits[:firstExitInCycleIndex],
@@ -279,19 +277,19 @@ func findCycle(startNode string, instructions string, directions map[string][2]s
 		}
 		visitedPositions[currentPosition] = i
 		i++
-		currentInstructionIndex++
-		if currentInstructionIndex == len(instructions) {
-			// could use >= or modulus but this should be faster
-			currentInstructionIndex = 0
+		nextInstructionIndex := (currentPosition.instructionIndex + 1) % len(instructions)
+		if i%len(instructions) != nextInstructionIndex {
+			return Cycle{}, fmt.Errorf("Something went wrong, i mod len != instruction")
 		}
+
 		// nextNode :=
 		var instruction int
 
-		if instructions[currentInstructionIndex] == 'R' {
+		if instructions[nextInstructionIndex] == 'R' {
 			// equivalent to `if currentPosition.nextInstructions[0] == 'R'`
 			instruction = 1
-		} else if instructions[currentInstructionIndex] != 'L' {
-			return Cycle{}, fmt.Errorf("Instruction not parsable at i: %d", currentInstructionIndex)
+		} else if instructions[nextInstructionIndex] != 'L' {
+			return Cycle{}, fmt.Errorf("Instruction not parsable at i: %d", nextInstructionIndex)
 		}
 		possibleNodes, exists := directions[currentPosition.node]
 		if !exists {
@@ -301,7 +299,7 @@ func findCycle(startNode string, instructions string, directions map[string][2]s
 
 		currentPosition = Position{
 			node:             nextNode,
-			nextInstructions: instructions[currentInstructionIndex:] + instructions[:currentInstructionIndex],
+			instructionIndex: nextInstructionIndex,
 		}
 	}
 }
@@ -313,6 +311,9 @@ func getResultPart2(filename string) (int, error) {
 	}
 
 	instructions, nodesBlock, found := strings.Cut(strings.TrimSpace(string(text)), "\r\n\r\n")
+	fmt.Println(instructions)
+	instructions = simplifyInstructions(instructions)
+	fmt.Println(instructions)
 	if !found {
 		return 0, errors.New("Could not split file into instructions / nodes")
 	}
@@ -349,13 +350,19 @@ func getResultPart2(filename string) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		fmt.Printf("For startNode %s, found cycle of length %d, starting after %d steps at node %s. Exit after %d steps \n", node, foundCycles[i].length, foundCycles[i].offset, foundCycles[i].node, foundCycles[i].exits[0].distance)
+		fmt.Printf("For startNode %s, found cycle of length %d, starting after %d steps at node %s. Exit %s after %d steps \n", node, foundCycles[i].length, foundCycles[i].offset, foundCycles[i].node, foundCycles[i].exits[0].node, foundCycles[i].exits[0].distance)
 	}
 	lcmCyclesLengths := 1
 	for _, cycle := range foundCycles {
 		lcmCyclesLengths = lcm(lcmCyclesLengths, cycle.length)
 	}
 	fmt.Printf("LCM all all cycles: %d", lcmCyclesLengths)
+
+	lcmExitsDistances := 1
+	for _, cycle := range foundCycles {
+		lcmExitsDistances = lcm(lcmExitsDistances, cycle.exits[0].distance)
+	}
+	fmt.Printf("LCM all all exits: %d", lcmExitsDistances)
 
 	// for all 6 startNodes, the cycle starts at the 2nd , and only 1 exit for each cycle
 
