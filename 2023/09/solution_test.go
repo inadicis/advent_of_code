@@ -23,16 +23,16 @@ func TestExtractData(t *testing.T) {
 }
 
 type DeepTestCase struct {
-	row []int 
-	deepness int 
-	found bool
+	row      []int
+	deepness int
+	found    bool
 }
 
 func TestFindDeepnessOf0Row(t *testing.T) {
 	testCases := []DeepTestCase{
 		{row: []int{0, 3, 6, 9, 12, 15}, deepness: 2, found: true},
 		{row: []int{1, 3, 6, 10, 15, 21}, deepness: 3, found: true},
-		{row: []int{10  13  16  21  30  45  68}, deepness: 3, found: true},
+		{row: []int{10, 13, 16, 21, 30, 45, 68}, deepness: 4, found: true},
 		{row: []int{1, 2}, deepness: 0, found: false},
 	}
 	for i, expected := range testCases {

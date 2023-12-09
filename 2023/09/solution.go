@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -9,8 +11,37 @@ import (
 )
 
 func main() {
-	rows := ExtractData("input.txt")
+	rows, err := ExtractData("input.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(rows)
+	r := 0
 
+	for i, row := range rows {
+
+		deepness, found := FindDeepnessOf0Row(row)
+		if !found {
+			log.Fatalf("No 0-filled row for start row %d", i)
+		}
+		deeperRowLastValue := 0
+		for d := deepness - 1; d >= 0; d-- {
+			currentRowLastValue := calcValue(row, d, len(row)-d-1)
+			deeperRowLastValue = deeperRowLastValue + currentRowLastValue
+		}
+		rows[i] = append(row, deeperRowLastValue)
+		fmt.Println(row)
+		r += deeperRowLastValue
+	}
+	fmt.Println(r)
+	result := 0
+	for _, row := range rows {
+		result += row[len(row)-1]
+	}
+	fmt.Println(result) // 952946799
+
+	// fmt.Println(quote.Glass())
+	// fmt.Println(combin.Binomial(4, 4))
 }
 
 func ExtractData(filename string) ([][]int, error) {
@@ -52,7 +83,7 @@ func calcValue(firstRow []int, deepness int, index int) int {
 	result := 0
 	for k := 0; k <= deepness; k++ {
 		sign := k%2 == 0
-		value := combin.Binomial(k, deepness) * firstRow[index+deepness-k]
+		value := combin.Binomial(deepness, k) * firstRow[index+deepness-k]
 		if sign {
 			result += value
 		} else {
