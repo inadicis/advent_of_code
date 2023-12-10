@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"container/list"
 	"fmt"
 	"log"
@@ -193,14 +194,37 @@ func countEnclosedTiles(maze [][]rune, visitedTiles map[Position]Tile, startPos 
 	// to "enter" the area, each line has to "cross" a up-down | pipe.
 	// this pipe could be "prolonged/divided" in multiple L--7 pipes or similar,
 	// but the one extreme must be up, the other must be down to inverse In/Out (LJ would just be ignored)
+	// fmt.Println()
+	var buffer bytes.Buffer
+	maze[startPos.row][startPos.col] = startRune
 	acceptedOrigins := runeToPipe[startRune]
+	debug := false
+	fmt.Println()
 	for i, row := range maze {
+		debug = i == 114
 		isIn := false
 		crossedUp := false
 		crossedDown := false
 		for j, r := range row {
 			tile, visited := visitedTiles[Position{i, j}]
+			// 114:           ||||F-JF7|LJ||LJF--JLJ||L7|S7FJ|L7|F7F7|LJL7L-7L7L7|F-7FJFJL-7F7||L--7|FJL-7 LJ|LJ|||L--7FJXF-JL-7FJFJ|FJLJ|L7|L7F-7L7|LJXXXXXXXXXXX
 			if visited && (tile.origin == acceptedOrigins.entrance || tile.origin == acceptedOrigins.exit) {
+				if debug {
+
+					if isIn {
+						fmt.Printf(" Currently IN, ")
+					} else {
+						fmt.Printf(" Currently OUT, ")
+					}
+					if crossedUp {
+						fmt.Printf(" already crossed UP, ")
+					}
+					if crossedDown {
+						fmt.Printf(" already crossed DOWN, ")
+					}
+					fmt.Printf("crossing edge of circle, at col %d, pipe %q ...", j, r)
+				}
+				buffer.WriteRune(r)
 				switch {
 				case r == '|':
 					isIn = !isIn
@@ -214,13 +238,38 @@ func countEnclosedTiles(maze [][]rune, visitedTiles map[Position]Tile, startPos 
 					crossedDown = false
 					crossedUp = false
 				}
+				if debug {
+
+					if isIn {
+						fmt.Printf(" ===> After processing: IN, ")
+					} else {
+						fmt.Printf(" ===> After processing: OUT, ")
+					}
+					if crossedUp {
+						fmt.Printf(" already crossed UP, ")
+					}
+					if crossedDown {
+						fmt.Printf(" already crossed DOWN, ")
+					}
+					fmt.Println()
+				}
 
 			} else if isIn {
 				amount++
+				buffer.WriteRune('X')
+			} else {
+				buffer.WriteRune(' ')
 			}
 
 		}
+		buffer.WriteString("\n")
 	}
+	// visualization := buffer.String()
+	fmt.Println()
+	// fmt.Print(visualization)
+	// for i, row := range strings.Split(visualization, "\n") {
+	// fmt.Printf("%03d:   %s\n", i, row)
+	// }
 	return amount
 }
 
