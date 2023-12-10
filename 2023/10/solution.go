@@ -38,16 +38,19 @@ var pipes map[rune]Pipe = map[rune]Pipe{
 }
 
 func getExitDirection(currentPipe rune, entranceDirection Direction) (exit Direction, found bool) {
+	fmt.Printf(" getExit(%s, direction: %v)", currentPipe, entranceDirection)
+	reversedDirection := Direction{-entranceDirection.row, -entranceDirection.col}
 	pipe, found := pipes[currentPipe]
 	if !found {
-		return Direction{}, found
+		return Direction{}, false
 	}
-	if entranceDirection == pipe.entrance {
+	if reversedDirection == pipe.entrance {
 		return pipe.exit, true
-	} else if entranceDirection == pipe.exit {
+	} else if reversedDirection == pipe.exit {
 		return pipe.entrance, true
 	} else {
-		panic("pipe did not match current direction")
+		// panic("pipe did not match current direction")
+		return Direction{}, false
 	}
 }
 
@@ -70,21 +73,23 @@ func BreadthFirstSearch(maze [][]rune, startPosition Position) (furthestPosition
 	visited := make(map[Position]int)
 	// queue := make([]Position, 4)
 	queue := list.New()
-	for _, direction := range []Direction{up, left, right, down} {
+	for _, direction := range []Direction{up, right, down, left} {
 		position, exists := getNextPosition(maze, startPosition, direction)
 		if exists {
 			queue.PushBack(QueuedPipe{position: position, entranceDirection: direction, distance: 1})
 		}
 		// queue[i] = Position{row, col}
 	}
+	fmt.Printf("Initialized BFS with queue: %#v\n", queue)
 	for i := 0; ; i++ {
-		fmt.Printf("Investigating pipe %d", i)
+		fmt.Printf(" Investigating pipe %d\n", i)
 		front := queue.Front()
 		if front == nil {
 			panic("Only dead ends!")
 		}
 		currentQueuedPipe := front.Value.(QueuedPipe)
 		queue.Remove(front)
+		fmt.Printf("  looking at pipe %#v\n", currentQueuedPipe)
 
 		distance, alreadyVisited := visited[currentQueuedPipe.position]
 		if alreadyVisited {
@@ -126,6 +131,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// fmt.Print(getExitDirection('L', down))
 	furthestPos, distance := BreadthFirstSearch(maze, startPos)
 	fmt.Printf("Furtherst Position found at distance %d: %#v ", distance, furthestPos)
 
@@ -145,13 +151,11 @@ func ExtractData(filename string) ([][]rune, Position, error) {
 			row[j] = rune(char)
 			if row[j] == 'S' {
 				startPos = Position{row: i, col: j}
+				fmt.Printf("Found Start position %#v\n", startPos)
 			}
 		}
+		fmt.Println(row)
 		rows[i] = row
 	}
 	return rows, startPos, nil
-}
-
-func day10(filename string) {
-
 }
