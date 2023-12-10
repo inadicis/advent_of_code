@@ -15,7 +15,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(rows)
+	// fmt.Println(rows)
 	sumForward := 0
 	sumBackward := 0
 
