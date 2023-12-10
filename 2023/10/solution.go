@@ -60,7 +60,6 @@ func getExitDirection(currentPipe rune, entranceDirection Direction) (exit Direc
 	} else if reversedDirection == pipe.exit {
 		return pipe.entrance, true
 	} else {
-		// panic("pipe did not match current direction")
 		return Direction{}, false
 	}
 }
@@ -90,25 +89,20 @@ func BreadthFirstSearch(maze [][]rune, startPosition Position) (furthestTile Til
 	// could have just iterated over one way and come back to start
 	// (as there are only 2 valid adjacent tiles to start this must work)
 	visited = make(map[Position]Tile)
-	// queue := make([]Position, 4)
 	queue := list.New()
 	for _, direction := range []Direction{up, right, down, left} {
 		position, exists := getNextPosition(maze, startPosition, direction)
 		if exists {
 			queue.PushBack(Tile{position: position, entranceDirection: direction, distance: 1, origin: direction})
 		}
-		// queue[i] = Position{row, col}
 	}
-	// fmt.Printf("Initialized BFS with queue: %#v\n", queue)
 	for i := 0; ; i++ {
-		// fmt.Printf(" Investigating pipe %d\n", i)
 		front := queue.Front()
 		if front == nil {
 			panic("Only dead ends! No cycle contains given startPosition")
 		}
 		currentQueuedTile := front.Value.(Tile)
 		queue.Remove(front)
-		// fmt.Printf("  looking at pipe %#v\n", currentQueuedTile)
 
 		tile, alreadyVisited := visited[currentQueuedTile.position]
 		if alreadyVisited {
@@ -146,36 +140,11 @@ func BreadthFirstSearch(maze [][]rune, startPosition Position) (furthestTile Til
 	}
 }
 
-// func getBorders(maze [][]rune, startPosition Position) [][]rune {
-// 	// initialize maze with only empty string tiles,
-// 	// then fill only the tiles that are part of the cycle
-// 	cleanMaze := make([][]rune, len(maze))
-// 	for i, row := range maze {
-// 		cleanMaze[i] = make([]rune, len(row))
-// 	}
-// 	currentPosition := startPosition
-// 	for {
-
-// 	}
-
-// }
-
-// func findStartPos(maze [][]rune)Position{
-// 	for i, row := range maze {
-// 		for j, char := range row{
-// 			if char == 'S'{
-// 				return
-// 			}
-// 		}
-// 	}
-// }
-
 func main() {
 	maze, startPos, err := ExtractData("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
-	// fmt.Print(getExitDirection('L', down))
 	furthestTile, visitedTiles, startRune := BreadthFirstSearch(maze, startPos)
 	fmt.Printf("Furtherst Position found at distance %d: %#v ", furthestTile.distance, furthestTile.position)
 	// maze[startPos.row][startPos.col] = startRune
@@ -194,36 +163,19 @@ func countEnclosedTiles(maze [][]rune, visitedTiles map[Position]Tile, startPos 
 	// to "enter" the area, each line has to "cross" a up-down | pipe.
 	// this pipe could be "prolonged/divided" in multiple L--7 pipes or similar,
 	// but the one extreme must be up, the other must be down to inverse In/Out (LJ would just be ignored)
-	// fmt.Println()
+	fmt.Println()
 	var buffer bytes.Buffer
 	maze[startPos.row][startPos.col] = startRune
 	acceptedOrigins := runeToPipe[startRune]
-	debug := false
 	fmt.Println()
 	for i, row := range maze {
-		debug = i == 114
 		isIn := false
 		crossedUp := false
 		crossedDown := false
 		for j, r := range row {
 			tile, visited := visitedTiles[Position{i, j}]
-			// 114:           ||||F-JF7|LJ||LJF--JLJ||L7|S7FJ|L7|F7F7|LJL7L-7L7L7|F-7FJFJL-7F7||L--7|FJL-7 LJ|LJ|||L--7FJXF-JL-7FJFJ|FJLJ|L7|L7F-7L7|LJXXXXXXXXXXX
 			if visited && (tile.origin == acceptedOrigins.entrance || tile.origin == acceptedOrigins.exit) {
-				if debug {
 
-					if isIn {
-						fmt.Printf(" Currently IN, ")
-					} else {
-						fmt.Printf(" Currently OUT, ")
-					}
-					if crossedUp {
-						fmt.Printf(" already crossed UP, ")
-					}
-					if crossedDown {
-						fmt.Printf(" already crossed DOWN, ")
-					}
-					fmt.Printf("crossing edge of circle, at col %d, pipe %q ...", j, r)
-				}
 				buffer.WriteRune(r)
 				switch {
 				case r == '|':
@@ -238,25 +190,10 @@ func countEnclosedTiles(maze [][]rune, visitedTiles map[Position]Tile, startPos 
 					crossedDown = false
 					crossedUp = false
 				}
-				if debug {
-
-					if isIn {
-						fmt.Printf(" ===> After processing: IN, ")
-					} else {
-						fmt.Printf(" ===> After processing: OUT, ")
-					}
-					if crossedUp {
-						fmt.Printf(" already crossed UP, ")
-					}
-					if crossedDown {
-						fmt.Printf(" already crossed DOWN, ")
-					}
-					fmt.Println()
-				}
 
 			} else if isIn {
 				amount++
-				buffer.WriteRune('X')
+				buffer.WriteRune('o')
 			} else {
 				buffer.WriteRune(' ')
 			}
@@ -264,12 +201,11 @@ func countEnclosedTiles(maze [][]rune, visitedTiles map[Position]Tile, startPos 
 		}
 		buffer.WriteString("\n")
 	}
-	// visualization := buffer.String()
-	fmt.Println()
+	visualization := buffer.String()
 	// fmt.Print(visualization)
-	// for i, row := range strings.Split(visualization, "\n") {
-	// fmt.Printf("%03d:   %s\n", i, row)
-	// }
+	for i, row := range strings.Split(visualization, "\n") {
+		fmt.Printf("%03d:   %s\n", i, row)
+	}
 	return amount
 }
 
@@ -287,10 +223,8 @@ func ExtractData(filename string) ([][]rune, Position, error) {
 			row[j] = rune(char)
 			if row[j] == 'S' {
 				startPos = Position{row: i, col: j}
-				// fmt.Printf("Found Start position %#v\n", startPos)
 			}
 		}
-		// fmt.Println(row)
 		rows[i] = row
 	}
 	return rows, startPos, nil
