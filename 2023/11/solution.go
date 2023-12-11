@@ -12,19 +12,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(universe)
-	fmt.Println(galaxies)
-	actualUnivers, actualGalaxies := ExtandGaps(universe, galaxies)
+
+	_, rowGaps, colGaps := IdentifyGaps(universe, galaxies)
 	// fmt.Println(actualUnivers)
-	fmt.Println(actualGalaxies)
-	for _, row := range actualUnivers {
+	for _, row := range universe {
 		// fmt.Printf("%03d: %v\n", i, row)
 		for _, char := range row {
 			fmt.Printf("%c", char)
 		}
 		fmt.Println()
 	}
-	distances := CalculateDistances(actualGalaxies)
+	gapFactor := 1000000
+	distances := CalculateDistances(galaxies, rowGaps, colGaps, gapFactor)
 	sum := 0
 	for _, d := range distances {
 		sum += d
@@ -53,7 +52,8 @@ func ExtractData(filename string) ([][]rune, [][]int, error) {
 	return rows, galaxyIndexes, nil
 }
 
-func ExtandGaps(universe [][]rune, galaxies [][]int) ([][]rune, [][]int) {
+func IdentifyGaps(universe [][]rune, galaxies [][]int) ([][]rune, []bool, []bool) {
+	// Replaces all gaps with a space (instead of point)
 	rowHasGalaxy := make([]bool, len(universe))
 	colHasGalaxy := make([]bool, len(universe[0]))
 	for _, galaxy := range galaxies {
@@ -61,8 +61,8 @@ func ExtandGaps(universe [][]rune, galaxies [][]int) ([][]rune, [][]int) {
 		rowHasGalaxy[galaxy[0]] = true
 		colHasGalaxy[galaxy[1]] = true
 	}
-	fmt.Printf("has row galaxy: %v\n", rowHasGalaxy)
-	fmt.Printf("has col galaxy: %v\n", colHasGalaxy)
+	// fmt.Printf("has row galaxy: %v\n", rowHasGalaxy)
+	// fmt.Printf("has col galaxy: %v\n", colHasGalaxy)
 	addedRows := 0
 	for _, hasGalaxy := range rowHasGalaxy {
 		if !hasGalaxy {
@@ -76,42 +76,27 @@ func ExtandGaps(universe [][]rune, galaxies [][]int) ([][]rune, [][]int) {
 			addedCols++
 		}
 	}
-	actualRowIndex := 0
-	actualUniverse := make([][]rune, len(universe)+addedRows)
-	actualGalaxies := make([][]int, len(galaxies))
-	galaxyCount := 0
 	for i, row := range universe {
 		if !rowHasGalaxy[i] {
-			fmt.Printf(" Adding a row at i %d\n", i)
-			actualUniverse[actualRowIndex] = make([]rune, len(universe[0])+addedCols)
-			for i := range actualUniverse[actualRowIndex] {
-				actualUniverse[actualRowIndex][i] = ' '
+			// fmt.Printf(" Adding a row at i %d\n", i)
+			for j := range row {
+				universe[i][j] = ' '
 			}
-			actualRowIndex++
-		}
-		actualColIndex := 0
-		newRow := make([]rune, len(universe[0])+addedCols)
-		for j, char := range row {
-			if !colHasGalaxy[j] {
+		} else {
+			for j := range row {
+				if !colHasGalaxy[j] {
 
-				fmt.Printf("  Adding a col at j %d (actual index: %d)\n", j, actualColIndex)
-				newRow[actualColIndex] = ' '
-				actualColIndex++
-			}
-			newRow[actualColIndex] = char
-			actualColIndex++
-			if char == '#' {
-				actualGalaxies[galaxyCount] = []int{actualRowIndex, actualColIndex}
-				galaxyCount++
+					// fmt.Printf("  Adding a col at j %d \n", j)
+					universe[i][j] = ' '
+				}
 			}
 		}
-		actualUniverse[actualRowIndex] = newRow
-		actualRowIndex++
+
 	}
-	return actualUniverse, actualGalaxies
+	return universe, rowHasGalaxy, colHasGalaxy
 }
 
-func CalculateDistances(galaxies [][]int) []int {
+func CalculateDistances(galaxies [][]int, rowGaps []bool, colGaps []bool, gapFactor int) []int {
 	distances := []int{}
 	for i, galaxy := range galaxies {
 		for j, otherGalaxy := range galaxies {
@@ -119,15 +104,37 @@ func CalculateDistances(galaxies [][]int) []int {
 				continue
 			}
 			// manhattan distances: d = deltaX + deltaY
-			deltaX := otherGalaxy[0] - galaxy[0]
-			deltaY := otherGalaxy[1] - galaxy[1]
-			if deltaX < 0 {
-				deltaX = -deltaX
+			minRow := galaxy[0]
+			minCol := galaxy[1]
+			maxRow := otherGalaxy[0]
+			maxCol := otherGalaxy[1]
+			if maxRow < minRow {
+				minRow, maxRow = maxRow, minRow
 			}
-			if deltaY < 0 {
-				deltaY = -deltaY
+			if maxCol < minCol {
+				minCol, maxCol = maxCol, minCol
 			}
-			distances = append(distances, deltaX+deltaY)
+			deltaRow := maxRow - minRow
+			deltaCol := maxCol - minCol
+
+			gapsRow := rowGaps[minRow:maxRow]
+			gapsCol := colGaps[minCol:maxCol]
+			// we could exclude both rows were the galaxy are, but need to check if delta > 2
+			amountGaps := 0
+
+			for _, hasGalaxy := range gapsRow {
+				if !hasGalaxy {
+					amountGaps++
+				}
+			}
+
+			for _, hasGalaxy := range gapsCol {
+				if !hasGalaxy {
+					amountGaps++
+				}
+			}
+			actualDistance := deltaRow + deltaCol + amountGaps*(gapFactor-1) // gaps were already counted once in deltas
+			distances = append(distances, actualDistance)
 		}
 	}
 	return distances
