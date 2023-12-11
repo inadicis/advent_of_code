@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	universe, galaxies, err := ExtractData("test_data.txt")
+	universe, galaxies, err := ExtractData("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -24,7 +24,12 @@ func main() {
 		}
 		fmt.Println()
 	}
-	// distances := CalculateDistances(data)
+	distances := CalculateDistances(actualGalaxies)
+	sum := 0
+	for _, d := range distances {
+		sum += d
+	}
+	fmt.Print(sum)
 }
 
 func ExtractData(filename string) ([][]rune, [][]int, error) {
@@ -104,4 +109,26 @@ func ExtandGaps(universe [][]rune, galaxies [][]int) ([][]rune, [][]int) {
 		actualRowIndex++
 	}
 	return actualUniverse, actualGalaxies
+}
+
+func CalculateDistances(galaxies [][]int) []int {
+	distances := []int{}
+	for i, galaxy := range galaxies {
+		for j, otherGalaxy := range galaxies {
+			if j >= i {
+				continue
+			}
+			// manhattan distances: d = deltaX + deltaY
+			deltaX := otherGalaxy[0] - galaxy[0]
+			deltaY := otherGalaxy[1] - galaxy[1]
+			if deltaX < 0 {
+				deltaX = -deltaX
+			}
+			if deltaY < 0 {
+				deltaY = -deltaY
+			}
+			distances = append(distances, deltaX+deltaY)
+		}
+	}
+	return distances
 }
