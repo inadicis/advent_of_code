@@ -11,7 +11,7 @@ import (
 
 func main() {
 	// fmt.Print(encode(decode("3,2,1,1,1,2")))
-	masks, amounts, err := ExtractData("test_data.txt")
+	masks, amounts, err := ExtractData("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,8 +59,9 @@ func ProcessData(masks []string, amounts [][]int, unfold bool) (total int) {
 		}
 	}
 	for i, mask := range masks {
-		total += countPossibilities(Input{mask, encode(amounts[i])})
-		fmt.Printf("%03d: currentSum: %d", i, total)
+		additional, cache := countPossibilities(Input{mask, encode(amounts[i])}, map[Input]int{})
+		total += additional
+		fmt.Printf("%03d: currentSum: %d, cache size: %d\n", i, total, len(cache))
 	}
 	return total
 }
@@ -118,13 +119,18 @@ func decode(s string) []int {
 	return numbers
 }
 
-func countPossibilities(in Input) (sum int) {
+func countPossibilities(in Input, cache map[Input]int) (sum int, updatedCache map[Input]int) {
 	// recursive greadily counting (consuming mask and amounts from left to right)
+	if a, ok := cache[in]; ok {
+		return a, cache
+	}
 	if len(in.amounts) == 0 {
 		if strings.Contains(in.mask, "#") {
-			return 0
+			cache[in] = 0
+			return 0, cache
 		}
-		return 1
+		cache[in] = 1
+		return 1, cache
 	}
 	amounts := decode(in.amounts)
 	min := minNeeded(amounts)
@@ -149,7 +155,10 @@ func countPossibilities(in Input) (sum int) {
 			continue
 
 		}
-		sum += countPossibilities(Input{remainingSprings, encode(amounts[1:])})
+		var additionalPossibilities int
+		additionalPossibilities, cache = countPossibilities(Input{remainingSprings, encode(amounts[1:])}, cache)
+		sum += additionalPossibilities
 	}
-	return sum
+	cache[in] = sum
+	return sum, cache
 }
