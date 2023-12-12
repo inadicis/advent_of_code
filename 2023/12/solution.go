@@ -15,7 +15,7 @@ func main() {
 	}
 	// fmt.Println(masks)
 	// fmt.Println(amounts)
-	result := ProcessData(masks, amounts)
+	result := ProcessData(masks, amounts, true)
 	fmt.Printf("\nFinal result: %d", result)
 }
 
@@ -48,12 +48,33 @@ func ExtractData(filename string) ([]string, [][]int, error) {
 	return rowsMasks, rowsAmounts, nil
 }
 
-func ProcessData(masks []string, amounts [][]int) (total int) {
+func ProcessData(masks []string, amounts [][]int, unfold bool) (total int) {
+	if unfold {
+		masks, amounts = UnfoldData(masks, amounts)
+		fmt.Println("After unfold")
+		for i, mask := range masks {
+			fmt.Printf("%03d: %q ||| %v\n", i, mask, amounts[i])
+		}
+	}
 	for i, mask := range masks {
-
 		total += countPossibilities(mask, amounts[i])
+		fmt.Printf("%03d: currentSum: %d", i, total)
 	}
 	return total
+}
+
+func UnfoldData(masks []string, amounts [][]int) ([]string, [][]int) {
+	for i, mask := range masks {
+		masks[i] = strings.Join([]string{mask, mask, mask, mask, mask}, "?")
+		newAmounts := make([]int, len(amounts[i])*5)
+		for j := 0; j < 5; j++ {
+			for k, a := range amounts[i] {
+				newAmounts[j*len(amounts[i])+k] = a
+			}
+		}
+		amounts[i] = newAmounts
+	}
+	return masks, amounts
 }
 
 func minNeeded(damagedGroupsSizes []int) int {
