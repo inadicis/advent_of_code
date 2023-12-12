@@ -37,7 +37,7 @@ func TestCountPossibilities(t *testing.T) {
 		{"?#??#???....#..", []int{1, 2}, 0},
 	}
 	for i, tCase := range testData {
-		actual := countPossibilities(tCase.mask, tCase.damagedGroupsSizes, 0)
+		actual := countPossibilities(tCase.mask, tCase.damagedGroupsSizes)
 		if actual != tCase.expected {
 			t.Errorf("%02d (%q, %v): expected %d, actual %d", i, tCase.mask, tCase.damagedGroupsSizes, tCase.expected, actual)
 		}

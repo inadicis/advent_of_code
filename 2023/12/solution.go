@@ -51,7 +51,7 @@ func ExtractData(filename string) ([]string, [][]int, error) {
 func ProcessData(masks []string, amounts [][]int) (total int) {
 	for i, mask := range masks {
 
-		total += countPossibilities(mask, amounts[i], 0)
+		total += countPossibilities(mask, amounts[i])
 	}
 	return total
 }
@@ -64,60 +64,37 @@ func minNeeded(damagedGroupsSizes []int) int {
 	return m
 }
 
-func countPossibilities(mask string, amounts []int, deepness int) (sum int) {
-	// ideas
-	// - build every possibility based only on len(mask) and on amounts,
-	//   then filter out those not-compatible with mask, then count
-	// - recursive greadily counting (consuming mask and amounts from left to right)
-	// fmt.Printf("%s ||| %v\n", mask, amounts)
-	pre := "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"[:deepness]
-	fmt.Printf(pre+"countPossibilities(%q, %v, %d)... \n", mask, amounts, minNeeded)
+func countPossibilities(mask string, amounts []int) (sum int) {
+	// recursive greadily counting (consuming mask and amounts from left to right)
 	if len(amounts) == 0 {
-		fmt.Printf(pre+" no damagedGroup anymore -> check if # in mask %q to check if valid \n", mask)
 		if strings.Contains(mask, "#") {
-			fmt.Print(pre + " ==> 0 \n")
-
 			return 0
 		}
-		fmt.Print(pre + " ==> +1 \n")
 		return 1
 	}
-	m := minNeeded(amounts)
-	if m > len(mask) {
+	min := minNeeded(amounts)
+	if min > len(mask) {
 		return
 	}
-	for i := 0; m+i <= len(mask); i++ {
-		endIndex := i + amounts[0]
-		if endIndex > len(mask) {
-			continue
-		}
-		workingSprings := mask[:i]
+	for offset := 0; min+offset <= len(mask); offset++ {
+		endIndex := offset + amounts[0]
+		workingSprings := mask[:offset]
+		damagedSprings := mask[offset:endIndex]
+		var remainingSprings string
 
-		damagedSprings := mask[i:endIndex]
 		if len(mask) > endIndex {
 			workingSprings += string(mask[endIndex])
+			if len(mask) > endIndex+1 {
+				remainingSprings = mask[endIndex+1:]
+			}
+
 		}
-		var remaining string
-		if len(mask) > endIndex+1 {
-			remaining = mask[endIndex+1:]
-		}
-		// fmt.Printf(pre+"actual: %q\n", mask)
-		// w := "................................."
-		// b := "#################################"
-		// fmt.Printf(pre+"trying: %q\n", w[:startIndex]+b[startIndex:endIndex]+w[:1]+"|"+remaining)
-		// fmt.Printf(pre+" working. %q, damaged# %q, remaining %q", workingSprings, damagedSprings, remaining)
-		if strings.Contains(workingSprings, "#") {
-			// fmt.Printf(pre+" working. %q contains '#' -> skipping i %d\n", workingSprings, i)
+
+		if strings.Contains(workingSprings, "#") || strings.Contains(damagedSprings, ".") {
 			continue
 
 		}
-		if strings.Contains(damagedSprings, ".") {
-			// fmt.Printf(pre+" damaged# %q contains '.' -> skipping i %d\n", damagedSprings, i)
-			continue
-		}
-		sum += countPossibilities(remaining, amounts[1:], deepness+1)
-		// fmt.Printf(pre+"sum increased: %d\n", sum)
+		sum += countPossibilities(remainingSprings, amounts[1:])
 	}
-	// fmt.Printf(pre+"%s %v ==> %d\n", mask, amounts, sum)
 	return sum
 }
