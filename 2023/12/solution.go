@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	masks, amounts, err := ExtractData("input.txt")
+	masks, amounts, err := ExtractData("test_data.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,52 +54,66 @@ func ProcessData(masks []string, amounts [][]int) (total int) {
 		for _, amount := range amounts[i] {
 			minNeeded += amount + 1 // at least one more separating from the next one.
 		}
-		total += countPossibilities(mask, amounts[i], minNeeded)
+		total += countPossibilities(mask, amounts[i], minNeeded, 0)
 	}
 	return total
 }
 
-func countPossibilities(mask string, amounts []int, minNeeded int) (sum int) {
+func countPossibilities(mask string, amounts []int, minNeeded int, deepness int) (sum int) {
 	// ideas
 	// - build every possibility based only on len(mask) and on amounts,
 	//   then filter out those not-compatible with mask, then count
 	// - recursive greadily counting (consuming mask and amounts from left to right)
 	// fmt.Printf("%s ||| %v\n", mask, amounts)
-	fmt.Printf("countPossibilities(%s, %v, %d)... min>currentLen: %v\n", mask, amounts, minNeeded, minNeeded > len(mask))
+	pre := "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"[:deepness]
+	fmt.Printf(pre+"countPossibilities(%q, %v, %d)... \n", mask, amounts, minNeeded)
 	if minNeeded > len(mask) {
-		fmt.Printf(" mask is too short -> return 0\n")
+		fmt.Printf(pre + " mask is too short -> return 0\n")
 		return 0
 	}
 	if len(amounts) == 0 {
 		panic("that should not happen")
 	}
 	if len(amounts) == 1 {
-		fmt.Printf(" Only 1 amount to place anymore, return %d - %d + 1\n", len(mask), amounts[0])
-		return max(0, len(mask)-amounts[0]+1)
+		// todo check for # . -> actually could stop the recursion at len(amounts) == 0 -> put this in the loop
+		if strings.Contains(mask, "#") {
+
+		} else {
+
+			fmt.Printf(pre+" Only 1 amount to place anymore, return %d - %d + 1\n", len(mask), amounts[0])
+			return max(0, len(mask)-amounts[0]+1)
+		}
 	}
+	fmt.Printf(pre+"mask %q, amounts: %v", mask, amounts)
 	for startIndex := range mask {
-		fmt.Printf(" %02d: mask %30s, amount: %d\n", startIndex, mask, amounts[0])
+		fmt.Printf(pre+" i %02d\n", startIndex)
 		endIndex := startIndex + amounts[0]
 		if len(mask) < endIndex+2 { //there must be at least one remaining for the next amount
-			return 0
+			fmt.Printf(pre + " len(mask) too tiny, break \n")
+			break
 		}
-		skipedPart := mask[:startIndex]
+		workingSprings := mask[:startIndex]
 
-		filledPart := mask[startIndex:endIndex]
-		skipedPart += string(mask[endIndex])
-		restPart := mask[endIndex+1:]
-		for _, char := range skipedPart {
-			if char == '#' {
-				continue
-			}
+		damagedSprings := mask[startIndex:endIndex]
+		workingSprings += string(mask[endIndex])
+		remaining := mask[endIndex+1:]
+		fmt.Printf(pre+"actual: %q\n", mask)
+		w := "................................."
+		b := "#################################"
+		fmt.Printf(pre+"trying: %q\n", w[:startIndex]+b[startIndex:endIndex]+w[:1]+remaining)
+		// fmt.Printf(pre+" working. %q, damaged# %q, remaining %q", workingSprings, damagedSprings, remaining)
+		if strings.Contains(workingSprings, "#") {
+			fmt.Printf(pre+" working. %q contains '#' -> skipping i %d\n", workingSprings, startIndex)
+			continue
+
 		}
-		for _, char := range filledPart {
-			if char == '.' {
-				continue
-			}
+		if strings.Contains(damagedSprings, ".") {
+			fmt.Printf(pre+" damaged# %q contains '.' -> skipping i %d\n", damagedSprings, startIndex)
+			continue
 		}
-		sum += countPossibilities(restPart, amounts[1:], minNeeded-amounts[0]-1)
+		sum += countPossibilities(remaining, amounts[1:], minNeeded-amounts[0]-1, deepness+1)
+		fmt.Printf(pre+"sum increased: %d\n", sum)
 	}
-	fmt.Printf("%s %v ==> %d\n", mask, amounts, sum)
+	fmt.Printf(pre+"%s %v ==> %d\n", mask, amounts, sum)
 	return sum
 }
