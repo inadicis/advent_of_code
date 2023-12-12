@@ -69,46 +69,44 @@ func countPossibilities(mask string, amounts []int, minNeeded int, deepness int)
 	fmt.Printf(pre+"countPossibilities(%q, %v, %d)... \n", mask, amounts, minNeeded)
 	if minNeeded > len(mask) {
 		fmt.Printf(pre + " mask is too short -> return 0\n")
-		return 0
+		return
 	}
 	if len(amounts) == 0 {
-		panic("that should not happen")
+		fmt.Print(pre + " COMPLETE: +1\n")
+		return 1
 	}
-	if len(amounts) == 1 {
-		// todo check for # . -> actually could stop the recursion at len(amounts) == 0 -> put this in the loop
-		if strings.Contains(mask, "#") {
-
-		} else {
-
-			fmt.Printf(pre+" Only 1 amount to place anymore, return %d - %d + 1\n", len(mask), amounts[0])
-			return max(0, len(mask)-amounts[0]+1)
+	fmt.Printf(pre+"mask %q, amounts: %v, minNeeded: %d\n", mask, amounts, minNeeded)
+	for i := 0; minNeeded+i <= len(mask); i++ {
+		fmt.Printf(pre+" i %02d\n", i)
+		endIndex := i + amounts[0]
+		// newMinNeeded := minNeeded - amounts[0] - 1 // - 1 if we need a separator -> not the last one
+		if endIndex > len(mask) {
+			fmt.Printf(pre+" endIndex %d > len(mask) (%d), break \n", endIndex, len(mask))
+			continue
 		}
-	}
-	fmt.Printf(pre+"mask %q, amounts: %v", mask, amounts)
-	for startIndex := range mask {
-		fmt.Printf(pre+" i %02d\n", startIndex)
-		endIndex := startIndex + amounts[0]
-		if len(mask) < endIndex+2 { //there must be at least one remaining for the next amount
-			fmt.Printf(pre + " len(mask) too tiny, break \n")
-			break
-		}
-		workingSprings := mask[:startIndex]
+		isLast := len(amounts) == 1
+		workingSprings := mask[:i]
 
-		damagedSprings := mask[startIndex:endIndex]
-		workingSprings += string(mask[endIndex])
-		remaining := mask[endIndex+1:]
-		fmt.Printf(pre+"actual: %q\n", mask)
-		w := "................................."
-		b := "#################################"
-		fmt.Printf(pre+"trying: %q\n", w[:startIndex]+b[startIndex:endIndex]+w[:1]+remaining)
+		damagedSprings := mask[i:endIndex]
+		if !isLast {
+			workingSprings += string(mask[endIndex])
+		}
+		var remaining string
+		if len(mask) > endIndex+1 {
+			remaining = mask[endIndex+1:]
+		}
+		// fmt.Printf(pre+"actual: %q\n", mask)
+		// w := "................................."
+		// b := "#################################"
+		// fmt.Printf(pre+"trying: %q\n", w[:startIndex]+b[startIndex:endIndex]+w[:1]+"|"+remaining)
 		// fmt.Printf(pre+" working. %q, damaged# %q, remaining %q", workingSprings, damagedSprings, remaining)
 		if strings.Contains(workingSprings, "#") {
-			fmt.Printf(pre+" working. %q contains '#' -> skipping i %d\n", workingSprings, startIndex)
+			fmt.Printf(pre+" working. %q contains '#' -> skipping i %d\n", workingSprings, i)
 			continue
 
 		}
 		if strings.Contains(damagedSprings, ".") {
-			fmt.Printf(pre+" damaged# %q contains '.' -> skipping i %d\n", damagedSprings, startIndex)
+			fmt.Printf(pre+" damaged# %q contains '.' -> skipping i %d\n", damagedSprings, i)
 			continue
 		}
 		sum += countPossibilities(remaining, amounts[1:], minNeeded-amounts[0]-1, deepness+1)
