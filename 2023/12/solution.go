@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	masks, amounts, err := ExtractData("test_data.txt")
+	masks, amounts, err := ExtractData("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,16 +50,21 @@ func ExtractData(filename string) ([]string, [][]int, error) {
 
 func ProcessData(masks []string, amounts [][]int) (total int) {
 	for i, mask := range masks {
-		minNeeded := -1
-		for _, amount := range amounts[i] {
-			minNeeded += amount + 1 // at least one more separating from the next one.
-		}
-		total += countPossibilities(mask, amounts[i], minNeeded, 0)
+
+		total += countPossibilities(mask, amounts[i], 0)
 	}
 	return total
 }
 
-func countPossibilities(mask string, amounts []int, minNeeded int, deepness int) (sum int) {
+func minNeeded(damagedGroupsSizes []int) int {
+	m := -1
+	for _, amount := range damagedGroupsSizes {
+		m += amount + 1 // at least one more separating from the next one.
+	}
+	return m
+}
+
+func countPossibilities(mask string, amounts []int, deepness int) (sum int) {
 	// ideas
 	// - build every possibility based only on len(mask) and on amounts,
 	//   then filter out those not-compatible with mask, then count
@@ -67,28 +72,29 @@ func countPossibilities(mask string, amounts []int, minNeeded int, deepness int)
 	// fmt.Printf("%s ||| %v\n", mask, amounts)
 	pre := "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"[:deepness]
 	fmt.Printf(pre+"countPossibilities(%q, %v, %d)... \n", mask, amounts, minNeeded)
-	if minNeeded > len(mask) {
-		fmt.Printf(pre + " mask is too short -> return 0\n")
-		return
-	}
 	if len(amounts) == 0 {
-		fmt.Print(pre + " COMPLETE: +1\n")
+		fmt.Printf(pre+" no damagedGroup anymore -> check if # in mask %q to check if valid \n", mask)
+		if strings.Contains(mask, "#") {
+			fmt.Print(pre + " ==> 0 \n")
+
+			return 0
+		}
+		fmt.Print(pre + " ==> +1 \n")
 		return 1
 	}
-	fmt.Printf(pre+"mask %q, amounts: %v, minNeeded: %d\n", mask, amounts, minNeeded)
-	for i := 0; minNeeded+i <= len(mask); i++ {
-		fmt.Printf(pre+" i %02d\n", i)
+	m := minNeeded(amounts)
+	if m > len(mask) {
+		return
+	}
+	for i := 0; m+i <= len(mask); i++ {
 		endIndex := i + amounts[0]
-		// newMinNeeded := minNeeded - amounts[0] - 1 // - 1 if we need a separator -> not the last one
 		if endIndex > len(mask) {
-			fmt.Printf(pre+" endIndex %d > len(mask) (%d), break \n", endIndex, len(mask))
 			continue
 		}
-		isLast := len(amounts) == 1
 		workingSprings := mask[:i]
 
 		damagedSprings := mask[i:endIndex]
-		if !isLast {
+		if len(mask) > endIndex {
 			workingSprings += string(mask[endIndex])
 		}
 		var remaining string
@@ -101,17 +107,17 @@ func countPossibilities(mask string, amounts []int, minNeeded int, deepness int)
 		// fmt.Printf(pre+"trying: %q\n", w[:startIndex]+b[startIndex:endIndex]+w[:1]+"|"+remaining)
 		// fmt.Printf(pre+" working. %q, damaged# %q, remaining %q", workingSprings, damagedSprings, remaining)
 		if strings.Contains(workingSprings, "#") {
-			fmt.Printf(pre+" working. %q contains '#' -> skipping i %d\n", workingSprings, i)
+			// fmt.Printf(pre+" working. %q contains '#' -> skipping i %d\n", workingSprings, i)
 			continue
 
 		}
 		if strings.Contains(damagedSprings, ".") {
-			fmt.Printf(pre+" damaged# %q contains '.' -> skipping i %d\n", damagedSprings, i)
+			// fmt.Printf(pre+" damaged# %q contains '.' -> skipping i %d\n", damagedSprings, i)
 			continue
 		}
-		sum += countPossibilities(remaining, amounts[1:], minNeeded-amounts[0]-1, deepness+1)
-		fmt.Printf(pre+"sum increased: %d\n", sum)
+		sum += countPossibilities(remaining, amounts[1:], deepness+1)
+		// fmt.Printf(pre+"sum increased: %d\n", sum)
 	}
-	fmt.Printf(pre+"%s %v ==> %d\n", mask, amounts, sum)
+	// fmt.Printf(pre+"%s %v ==> %d\n", mask, amounts, sum)
 	return sum
 }
