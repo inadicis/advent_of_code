@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -9,7 +10,8 @@ import (
 )
 
 func main() {
-	masks, amounts, err := ExtractData("input.txt")
+	// fmt.Print(encode(decode("3,2,1,1,1,2")))
+	masks, amounts, err := ExtractData("test_data.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,7 +59,7 @@ func ProcessData(masks []string, amounts [][]int, unfold bool) (total int) {
 		}
 	}
 	for i, mask := range masks {
-		total += countPossibilities(mask, amounts[i])
+		total += countPossibilities(Input{mask, encode(amounts[i])})
 		fmt.Printf("%03d: currentSum: %d", i, total)
 	}
 	return total
@@ -85,28 +87,60 @@ func minNeeded(damagedGroupsSizes []int) int {
 	return m
 }
 
-func countPossibilities(mask string, amounts []int) (sum int) {
+type Input struct {
+	mask    string
+	amounts string
+}
+
+func encode(amounts []int) string {
+	var buffer bytes.Buffer
+	for i, a := range amounts {
+		if i != 0 {
+			buffer.WriteRune(',')
+		}
+		buffer.WriteString(fmt.Sprintf("%d", a))
+	}
+	s := buffer.String()
+	// fmt.Printf("encoding %v. Result: %q.\n", amounts, s)
+	return s // remove last comma
+}
+
+func decode(s string) []int {
+	split := strings.Split(s, ",")
+	numbers := make([]int, len(split))
+	for i, n := range split {
+		number, err := strconv.Atoi(n)
+		if err != nil {
+			panic("Number not recognized")
+		}
+		numbers[i] = number
+	}
+	return numbers
+}
+
+func countPossibilities(in Input) (sum int) {
 	// recursive greadily counting (consuming mask and amounts from left to right)
-	if len(amounts) == 0 {
-		if strings.Contains(mask, "#") {
+	if len(in.amounts) == 0 {
+		if strings.Contains(in.mask, "#") {
 			return 0
 		}
 		return 1
 	}
+	amounts := decode(in.amounts)
 	min := minNeeded(amounts)
-	if min > len(mask) {
+	if min > len(in.mask) {
 		return
 	}
-	for offset := 0; min+offset <= len(mask); offset++ {
+	for offset := 0; min+offset <= len(in.mask); offset++ {
 		endIndex := offset + amounts[0]
-		workingSprings := mask[:offset]
-		damagedSprings := mask[offset:endIndex]
+		workingSprings := in.mask[:offset]
+		damagedSprings := in.mask[offset:endIndex]
 		var remainingSprings string
 
-		if len(mask) > endIndex {
-			workingSprings += string(mask[endIndex])
-			if len(mask) > endIndex+1 {
-				remainingSprings = mask[endIndex+1:]
+		if len(in.mask) > endIndex {
+			workingSprings += string(in.mask[endIndex])
+			if len(in.mask) > endIndex+1 {
+				remainingSprings = in.mask[endIndex+1:]
 			}
 
 		}
@@ -115,7 +149,7 @@ func countPossibilities(mask string, amounts []int) (sum int) {
 			continue
 
 		}
-		sum += countPossibilities(remainingSprings, amounts[1:])
+		sum += countPossibilities(Input{remainingSprings, encode(amounts[1:])})
 	}
 	return sum
 }
