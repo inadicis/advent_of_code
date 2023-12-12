@@ -58,3 +58,4 @@ local/*
 */.env
 # env variables, might be actually pushed if we have a "local.env" that is ignored
 **/input.txt
+2023/playground.py

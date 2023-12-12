@@ -10,13 +10,10 @@ import (
 )
 
 func main() {
-	// fmt.Print(encode(decode("3,2,1,1,1,2")))
 	masks, amounts, err := ExtractData("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
-	// fmt.Println(masks)
-	// fmt.Println(amounts)
 	result := ProcessData(masks, amounts, true)
 	fmt.Printf("\nFinal result: %d", result)
 }
@@ -53,15 +50,13 @@ func ExtractData(filename string) ([]string, [][]int, error) {
 func ProcessData(masks []string, amounts [][]int, unfold bool) (total int) {
 	if unfold {
 		masks, amounts = UnfoldData(masks, amounts)
-		fmt.Println("After unfold")
-		for i, mask := range masks {
-			fmt.Printf("%03d: %q ||| %v\n", i, mask, amounts[i])
-		}
 	}
+	cache := map[Input]int{}
 	for i, mask := range masks {
-		additional, cache := countPossibilities(Input{mask, encode(amounts[i])}, map[Input]int{})
+		var additional int
+		additional, cache = countPossibilities(Input{mask, encode(amounts[i])}, cache)
 		total += additional
-		fmt.Printf("%03d: currentSum: %d, cache size: %d\n", i, total, len(cache))
+		// fmt.Printf("%03d: currentSum: %d, cache size: %d\n", i, total, len(cache))
 	}
 	return total
 }
@@ -102,8 +97,7 @@ func encode(amounts []int) string {
 		buffer.WriteString(fmt.Sprintf("%d", a))
 	}
 	s := buffer.String()
-	// fmt.Printf("encoding %v. Result: %q.\n", amounts, s)
-	return s // remove last comma
+	return s
 }
 
 func decode(s string) []int {
