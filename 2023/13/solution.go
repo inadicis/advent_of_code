@@ -38,8 +38,7 @@ func ExtractData(filename string) (patterns [][]string, err error) {
 }
 
 func ProcessData(blocks [][]string) (total int, err error) {
-	for i, block := range blocks {
-		fmt.Printf("%03d: Processing %v\n", i, block)
+	for _, block := range blocks {
 		row, col := findSymmetry(block)
 		total += col + 100*row
 	}
@@ -49,31 +48,45 @@ func ProcessData(blocks [][]string) (total int, err error) {
 func findSymmetry(block []string) (row int, col int) {
 COLAXIS:
 	for colAxis := 1; colAxis < len(block[0]); colAxis++ {
+		smudgeFound := false
 		for _, row := range block {
-			// fmt.Printf(" Comparing row %d: %q with axis %d", i, row, colAxis)
 			distanceToEdge := min(colAxis, len(row)-colAxis)
 			for j := 0; j < distanceToEdge; j++ {
-				// fmt.Printf("  %q ?= %q", row[colAxis-j-1], row[colAxis+j])
 				if row[colAxis-j-1] != row[colAxis+j] {
-					// fmt.Printf("   FALSE -> skip axis %d", colAxis)
-					continue COLAXIS
+					if smudgeFound {
+						continue COLAXIS
+					} else {
+						smudgeFound = true
+					}
+					// fmt.Printf("   FALSE -> skip axis %d\n", colAxis)
 				}
 			}
 		}
-		col = colAxis
+		if smudgeFound {
+			col = colAxis
+		}
+		// break
 	}
 
 ROWAXIS:
 	for rowAxis := 1; rowAxis < len(block); rowAxis++ {
+		smudgeFound := false
 		for i := 0; i < len(block[0]); i++ {
 			distanceToEdge := min(rowAxis, len(block)-rowAxis)
 			for j := 0; j < distanceToEdge; j++ {
 				if block[rowAxis-j-1][i] != block[rowAxis+j][i] {
-					continue ROWAXIS
+					if smudgeFound {
+						continue ROWAXIS
+					} else {
+						smudgeFound = true
+					}
 				}
 			}
 		}
-		row = rowAxis
+		if smudgeFound {
+			row = rowAxis
+		}
+		// break
 	}
 	return row, col
 }
