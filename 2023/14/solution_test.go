@@ -9,13 +9,13 @@ import (
 
 func TestParts(t *testing.T) {
 	tests := []struct {
-		expected int64
+		expected int
 		filename string
-		fn       func(string) int64
+		fn       func(string) int
 	}{
 		{
-			expected: 999,
-			input:    `test.txt`,
+			expected: 136,
+			filename: "test.txt",
 			fn:       part1,
 		},
 	}
@@ -26,19 +26,19 @@ func TestParts(t *testing.T) {
 	}
 }
 
-func TestInternalFunc(t *testing.T) {
-	tests := []struct {
-		expected int64
-		input    string
-		fn       func(string) int64
-	}{
-		{
-			expected: 999,
-			input:    "1,2,4,5 A B C",
-			fn:       part1,
-		},
-	}
-	for _, test := range tests {
-		assert.Equal(t, test.expected, test.fn(test.input))
-	}
-}
+// func TestInternalFunc(t *testing.T) {
+// 	tests := []struct {
+// 		expected int64
+// 		input    string
+// 		fn       func(string) int64
+// 	}{
+// 		{
+// 			expected: 999,
+// 			input:    "1,2,4,5 A B C",
+// 			fn:       part1,
+// 		},
+// 	}
+// 	for _, test := range tests {
+// 		assert.Equal(t, test.expected, test.fn(test.input))
+// 	}
+// }
