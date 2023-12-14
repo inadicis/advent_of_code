@@ -84,23 +84,6 @@ func countWeight(rows [][]rune) (weight int) {
 	return weight
 }
 
-func same(a [][]rune, b [][]rune) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, row := range a {
-		if len(row) != len(b[i]) {
-			return false
-		}
-		for j, c := range row {
-			if c != b[i][j] {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 func StringToRunes(s string) []rune {
 	r := make([]rune, len(s))
 	for i, c := range s {
@@ -145,79 +128,66 @@ func spinRocks(lines [][]rune) {
 	// for _, dir := range []Direction{1, 2, 3, 4} {
 	// 	fmt.Println(dir)
 	// }
-	// NORTH WEST SOUTH EAST
-	for col := 0; col < len(lines[0]); col++ {
-		potentialRow := 0
-		for row := potentialRow; row < len(lines); row++ {
-			char := lines[row][col]
-			if char == '#' {
-				potentialRow = row + 1
-			} else if char == 'O' {
-				lines[row][col] = '.'
-				lines[potentialRow][col] = 'O'
-				potentialRow++
-			} else if char != '.' { // do nothing on points
-				panic("unexpected rune")
-			}
-		}
-	}
-	// fmt.Printf("Rows after tilting North: \n")
-	// pprint(lines)
-	for row := 0; row < len(lines); row++ {
-		// fmt.Printf(" row %02d ... \n", row)
-		potentialCol := 0
-		for col := potentialCol; col < len(lines[0]); col++ {
+	// NORTH
+	tiltNorthSouth(lines, false)
+	// WEST
+	tiltWestEast(lines, false)
+	// SOUTH
 
-			// fmt.Printf("  col %02d ... potential position %d \n", col, potentialPosition)
-			char := lines[row][col]
-			// fmt.Printf("  char: %q\n", char)
-			if char == '#' {
-				potentialCol = col + 1
-			} else if char == 'O' {
-				lines[row][col] = '.'
-				lines[row][potentialCol] = 'O'
-				potentialCol++
-			} else if char != '.' { // do nothing on points
-				panic("unexpected rune")
-			}
-		}
-	}
-	// fmt.Printf("Rows after tilting west: \n")
-	// pprint(lines)
+	tiltNorthSouth(lines, true)
+	// EAST
+	tiltWestEast(lines, true)
+}
+
+func tiltNorthSouth(lines [][]rune, south bool) {
+
 	for col := 0; col < len(lines[0]); col++ {
-		potentialRow := len(lines) - 1
-		for row := potentialRow; row >= 0; row-- {
+		initialRow := 0
+		lastRow := len(lines) - 1
+		step := 1
+		if south {
+			initialRow, lastRow = lastRow, initialRow
+			step = -1
+		}
+		potentialRow := initialRow
+		for row := initialRow; (lastRow-row)*step >= 0; row += step {
 			char := lines[row][col]
 			if char == '#' {
-				potentialRow = row - 1
+				potentialRow = row + step
 			} else if char == 'O' {
 				lines[row][col] = '.'
 				lines[potentialRow][col] = 'O'
-				potentialRow--
+				potentialRow += step
 			} else if char != '.' { // do nothing on points
 				panic("unexpected rune")
 			}
 		}
 	}
-	// fmt.Printf("Rows after tilting South: \n")
-	// pprint(lines)
-	for row := 0; row < len(lines); row++ {
-		potentialCol := len(lines[0]) - 1
-		for col := potentialCol; col >= 0; col-- {
+}
+func tiltWestEast(lines [][]rune, east bool) {
+
+	for row := 0; row < len(lines[0]); row++ {
+		initialCol := 0
+		lastCol := len(lines[0]) - 1
+		step := 1
+		if east {
+			initialCol, lastCol = lastCol, initialCol
+			step = -1
+		}
+		potentialCol := initialCol
+		for col := initialCol; (lastCol-col)*step >= 0; col += step {
 			char := lines[row][col]
 			if char == '#' {
-				potentialCol = col - 1
+				potentialCol = col + step
 			} else if char == 'O' {
 				lines[row][col] = '.'
 				lines[row][potentialCol] = 'O'
-				potentialCol--
+				potentialCol += step
 			} else if char != '.' { // do nothing on points
 				panic("unexpected rune")
 			}
 		}
 	}
-	// fmt.Printf("Rows after tilting East: \n")
-	// pprint(lines)
 }
 
 func pprint(lines [][]rune) {
