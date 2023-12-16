@@ -8,30 +8,29 @@ import (
 	"strings"
 )
 
-func pprint(boxes []list.List) {
-
-	for i, box := range boxes {
-		s := ""
-		for e := box.Front(); e != nil; e = e.Next() {
-			s += fmt.Sprintf("[%v]", e.Value)
+func pprint(lines [][]rune) {
+	for _, row := range lines {
+		for _, char := range row {
+			fmt.Printf("%c", char)
 		}
-		fmt.Printf(" box %03d: %s\n", i, s)
+		fmt.Println()
 	}
 }
 
 func main() {
-	text, err := os.ReadFile("input.txt")
+	text, err := os.ReadFile("test.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
-	instructions := cleanupData(text)
-	result := part1(instructions)
+	mirrors := cleanupData(text)
+	pprint(mirrors)
+	result := part1(mirrors)
 	fmt.Printf("\nFinal result: %d", result)
 
 }
 
 func cleanupData(text []byte) [][]rune {
-	lines := strings.Split(string(text), ",")
+	lines := strings.Split(strings.TrimSpace(string(text)), "\n")
 	rows := make([][]rune, len(lines))
 	for i, line := range lines {
 		row := make([]rune, len(line))
@@ -74,12 +73,13 @@ type DirectionVector struct {
 func (v DirectionVector) direction() (d Direction) {
 	// assumes direction vector has exactly one of row/col != 0
 	if v.col != 0 {
-		d.upDown = True
+		d.upDown = true
 	}
 
 	if v.row < 0 || v.col < 0 {
-		d.reverse = True
+		d.reverse = true
 	}
+	return d
 }
 
 type Mirror struct {
@@ -147,8 +147,8 @@ func reflections(d Direction, char rune) []Direction {
 }
 
 type Tile struct {
-	i         int
-	j         int
+	row       int
+	col       int
 	direction Direction
 }
 
@@ -157,15 +157,38 @@ func part1(mirrors [][]rune) (total int) {
 	for i, row := range mirrors {
 		activated[i] = make([]bool, len(row))
 	}
+	fmt.Printf("Len rows: %d, Len cols %d", len(mirrors), len(mirrors[0]))
 	queue := list.New()
 	queue.PushBack(Tile{0, 0, Direction{}})
+	step := 0
 	for e := queue.Front(); e != nil; e = e.Next() {
 		tile := e.Value.(Tile)
-		activated[tile.i][tile.j] = true
-		char := mirrors[tile.i][tile.j]
+		activated[tile.row][tile.col] = true
+		char := mirrors[tile.row][tile.col]
+		fmt.Printf(" %02d: current char: %q, %#v\n", step, char, tile)
+		nextDirections := reflections(tile.direction, char)
+		fmt.Printf(" next: %#v\n", nextDirections)
+		for _, d := range nextDirections {
+			row := tile.row + d.vector().row
+			col := tile.col + d.vector().col
+			fmt.Printf(" | row %d, col %d...\n", row, col)
+			if row < 0 || row >= len(mirrors) || col < 0 || col >= len(mirrors[0]) {
+				fmt.Printf(" | skipping: len(rows) %d, len(cols) %d\n", len(mirrors), len(mirrors[0]))
+				continue
+			}
+			queue.PushBack(Tile{row: row, col: col, direction: d})
+		}
+		step++
 		// switch {
 		// 	case char == ""
 		// }
+	}
+	for _, row := range activated {
+		for _, active := range row {
+			if active {
+				total++
+			}
+		}
 	}
 	return total
 }
