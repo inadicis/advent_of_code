@@ -24,7 +24,7 @@ func main() {
 	}
 	mirrors := cleanupData(text)
 	pprint(mirrors)
-	result := part1(mirrors)
+	result := part2(mirrors)
 	fmt.Printf("\nFinal result: %d", result)
 
 }
@@ -152,15 +152,14 @@ type Tile struct {
 	direction Direction
 }
 
-func part1(mirrors [][]rune) (total int) {
+func getAmountActivated(mirrors [][]rune, startTile Tile) (total int) {
 	visited := make(map[Tile]bool)
 	activated := make([][]bool, len(mirrors))
 	for i, row := range mirrors {
 		activated[i] = make([]bool, len(row))
 	}
-	fmt.Printf("Len rows: %d, Len cols %d", len(mirrors), len(mirrors[0]))
 	queue := list.New()
-	queue.PushBack(Tile{0, 0, Direction{}})
+	queue.PushBack(startTile)
 	step := 0
 	for e := queue.Front(); e != nil; e = e.Next() {
 		tile := e.Value.(Tile)
@@ -170,23 +169,16 @@ func part1(mirrors [][]rune) (total int) {
 		activated[tile.row][tile.col] = true
 		visited[tile] = true
 		char := mirrors[tile.row][tile.col]
-		fmt.Printf(" %02d: current char: %q, %#v\n", step, char, tile)
 		nextDirections := reflections(tile.direction, char)
-		fmt.Printf(" next: %#v\n", nextDirections)
 		for _, d := range nextDirections {
 			row := tile.row + d.vector().row
 			col := tile.col + d.vector().col
-			fmt.Printf(" | row %d, col %d...\n", row, col)
 			if row < 0 || row >= len(mirrors) || col < 0 || col >= len(mirrors[0]) {
-				fmt.Printf(" | skipping: len(rows) %d, len(cols) %d\n", len(mirrors), len(mirrors[0]))
 				continue
 			}
 			queue.PushBack(Tile{row: row, col: col, direction: d})
 		}
 		step++
-		// switch {
-		// 	case char == ""
-		// }
 	}
 	for _, row := range activated {
 		for _, active := range row {
@@ -197,7 +189,31 @@ func part1(mirrors [][]rune) (total int) {
 	}
 	return total
 }
+func part1(mirrors [][]rune) (total int) {
+	return getAmountActivated(mirrors, Tile{0, 0, Direction{}})
+}
 
-func part2(instructions []string) (total int) {
+func part2(mirrors [][]rune) (total int) {
+	for row := 0; row < len(mirrors); row++ {
+		leftToRight := getAmountActivated(mirrors, Tile{row, 0, Direction{false, false}})
+		if leftToRight > total {
+			total = leftToRight
+		}
+		rightToLeft := getAmountActivated(mirrors, Tile{row, len(mirrors[row]) - 1, Direction{false, true}})
+		if leftToRight > total {
+			total = rightToLeft
+		}
+	}
+
+	for col := 0; col < len(mirrors[0]); col++ {
+		upToDown := getAmountActivated(mirrors, Tile{0, col, Direction{true, false}})
+		if upToDown > total {
+			total = upToDown
+		}
+		downToUp := getAmountActivated(mirrors, Tile{len(mirrors) - 1, col, Direction{true, true}})
+		if upToDown > total {
+			total = downToUp
+		}
+	}
 	return total
 }
