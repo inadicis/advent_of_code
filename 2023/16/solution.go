@@ -17,6 +17,13 @@ func pprint(lines [][]rune) {
 	}
 }
 
+var ( // GOLANG? how to make this const? const structs possible?
+	up    = Direction{true, true}
+	down  = Direction{true, false}
+	right = Direction{false, false}
+	left  = Direction{false, true}
+)
+
 func main() {
 	text, err := os.ReadFile("input.txt")
 	if err != nil {
@@ -29,6 +36,7 @@ func main() {
 
 }
 
+// GOLANG? -> how to split by newline independently of if it is on mac \n or windows \r\n?
 func cleanupData(text []byte) [][]rune {
 	lines := strings.Split(strings.TrimSpace(string(text)), "\n")
 	rows := make([][]rune, len(lines))
@@ -193,27 +201,17 @@ func part1(mirrors [][]rune) (total int) {
 	return getAmountActivated(mirrors, Tile{0, 0, Direction{}})
 }
 
-func part2(mirrors [][]rune) (total int) {
+func part2(mirrors [][]rune) (maxTotal int) {
 	for row := 0; row < len(mirrors); row++ {
-		leftToRight := getAmountActivated(mirrors, Tile{row, 0, Direction{false, false}})
-		if leftToRight > total {
-			total = leftToRight
-		}
-		rightToLeft := getAmountActivated(mirrors, Tile{row, len(mirrors[row]) - 1, Direction{false, true}})
-		if leftToRight > total {
-			total = rightToLeft
-		}
+		leftToRightTotal := getAmountActivated(mirrors, Tile{row, 0, right})
+		rightToLeftTotal := getAmountActivated(mirrors, Tile{row, len(mirrors[row]) - 1, left})
+		maxTotal = max(maxTotal, leftToRightTotal, rightToLeftTotal)
 	}
 
 	for col := 0; col < len(mirrors[0]); col++ {
-		upToDown := getAmountActivated(mirrors, Tile{0, col, Direction{true, false}})
-		if upToDown > total {
-			total = upToDown
-		}
-		downToUp := getAmountActivated(mirrors, Tile{len(mirrors) - 1, col, Direction{true, true}})
-		if upToDown > total {
-			total = downToUp
-		}
+		upToDownTotal := getAmountActivated(mirrors, Tile{0, col, up})
+		downToUpTotal := getAmountActivated(mirrors, Tile{len(mirrors) - 1, col, down})
+		maxTotal = max(maxTotal, upToDownTotal, downToUpTotal)
 	}
-	return total
+	return maxTotal
 }
