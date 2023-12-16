@@ -29,9 +29,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	mirrors := cleanupData(text)
-	pprint(mirrors)
-	result := part2(mirrors)
+	maze := cleanupData(text)
+	pprint(maze)
+	result := part2(maze)
 	fmt.Printf("\nFinal result: %d", result)
 
 }
@@ -95,6 +95,13 @@ type Mirror struct {
 	inverse  bool
 }
 
+var mirrors map[rune]Mirror = map[rune]Mirror{
+	'-':  {straight: true, inverse: false},
+	'|':  {straight: true, inverse: true},
+	'/':  {straight: false, inverse: true},
+	'\\': {straight: false, inverse: false},
+}
+
 func getMirror(m rune) Mirror {
 	switch m {
 	case '-':
@@ -123,35 +130,29 @@ func reflections(d Direction, char rune) []Direction {
 		-
 	*/
 	outcome := make([]Direction, 0, 2)
-	if char == '.' { // TODO simplify if-elses
-		outcome = append(outcome, d)
-	} else {
-		mirror := getMirror(char)
-		if mirror.straight {
-			if mirror.inverse == d.upDown {
-				outcome = append(outcome, d)
-			} else {
-				outcome = append(outcome, Direction{!d.upDown, true})
-				outcome = append(outcome, Direction{!d.upDown, false})
-			}
-		} else {
-			if mirror.inverse {
-				outcome = append(outcome, Direction{!d.upDown, !d.reverse})
-			} else {
-				outcome = append(outcome, Direction{!d.upDown, d.reverse})
-			}
-		}
-	}
-	return outcome
 
-	// switch char {
-	// case '-':
-	// 	if !d.upDown {
-	// 		outcome[0] = d
-	// 	} else {
-	// 		outcome[0] = Direction{}
-	// 	}
-	// }
+	mirror, isMirror := mirrors[char]
+	if !isMirror {
+		return append(outcome, d)
+	}
+	if mirror.straight {
+		if mirror.inverse == d.upDown {
+			outcome = append(outcome, d)
+		} else {
+			outcome = append(outcome, Direction{!d.upDown, true})
+			outcome = append(outcome, Direction{!d.upDown, false})
+		}
+	} else {
+		if mirror.inverse {
+			outcome = append(outcome, Direction{!d.upDown, !d.reverse})
+		} else {
+			outcome = append(outcome, Direction{!d.upDown, d.reverse})
+		}
+		// outcome = append(outcome, Direction{!d.upDown, d.reverse != mirror.inverse})
+
+	}
+
+	return outcome
 }
 
 type Tile struct {
@@ -197,20 +198,20 @@ func getAmountActivated(mirrors [][]rune, startTile Tile) (total int) {
 	}
 	return total
 }
-func part1(mirrors [][]rune) (total int) {
-	return getAmountActivated(mirrors, Tile{0, 0, Direction{}})
+func part1(maze [][]rune) (total int) {
+	return getAmountActivated(maze, Tile{0, 0, Direction{}})
 }
 
-func part2(mirrors [][]rune) (maxTotal int) {
-	for row := 0; row < len(mirrors); row++ {
-		leftToRightTotal := getAmountActivated(mirrors, Tile{row, 0, right})
-		rightToLeftTotal := getAmountActivated(mirrors, Tile{row, len(mirrors[row]) - 1, left})
+func part2(maze [][]rune) (maxTotal int) {
+	for row := 0; row < len(maze); row++ {
+		leftToRightTotal := getAmountActivated(maze, Tile{row, 0, right})
+		rightToLeftTotal := getAmountActivated(maze, Tile{row, len(maze[row]) - 1, left})
 		maxTotal = max(maxTotal, leftToRightTotal, rightToLeftTotal)
 	}
 
-	for col := 0; col < len(mirrors[0]); col++ {
-		upToDownTotal := getAmountActivated(mirrors, Tile{0, col, up})
-		downToUpTotal := getAmountActivated(mirrors, Tile{len(mirrors) - 1, col, down})
+	for col := 0; col < len(maze[0]); col++ {
+		upToDownTotal := getAmountActivated(maze, Tile{0, col, up})
+		downToUpTotal := getAmountActivated(maze, Tile{len(maze) - 1, col, down})
 		maxTotal = max(maxTotal, upToDownTotal, downToUpTotal)
 	}
 	return maxTotal
