@@ -6,6 +6,15 @@ import (
 	"strings"
 )
 
+func pprint(lines [][]rune) {
+	for _, row := range lines {
+		for _, char := range row {
+			fmt.Printf("%c ", char)
+		}
+		fmt.Println()
+	}
+}
+
 func same(a [][]rune, b [][]rune) bool {
 	if len(a) != len(b) {
 		return false
@@ -61,13 +70,4 @@ func StringsToRunes(a []string) [][]rune {
 		rows[i] = StringToRunes(s)
 	}
 	return rows
-}
-
-func pprint(lines [][]rune) {
-	for _, row := range lines {
-		for _, char := range row {
-			fmt.Printf("%c ", char)
-		}
-		fmt.Println()
-	}
 }

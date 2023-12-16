@@ -18,7 +18,7 @@ func pprint(lines [][]rune) {
 }
 
 func main() {
-	text, err := os.ReadFile("test.txt")
+	text, err := os.ReadFile("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -153,6 +153,7 @@ type Tile struct {
 }
 
 func part1(mirrors [][]rune) (total int) {
+	visited := make(map[Tile]bool)
 	activated := make([][]bool, len(mirrors))
 	for i, row := range mirrors {
 		activated[i] = make([]bool, len(row))
@@ -163,7 +164,11 @@ func part1(mirrors [][]rune) (total int) {
 	step := 0
 	for e := queue.Front(); e != nil; e = e.Next() {
 		tile := e.Value.(Tile)
+		if visited[tile] {
+			continue // cycle detected (same position and direction) ==> skip
+		}
 		activated[tile.row][tile.col] = true
+		visited[tile] = true
 		char := mirrors[tile.row][tile.col]
 		fmt.Printf(" %02d: current char: %q, %#v\n", step, char, tile)
 		nextDirections := reflections(tile.direction, char)
