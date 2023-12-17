@@ -8,37 +8,30 @@ import (
 	"strings"
 )
 
-func pprint(lines [][]rune) {
-	for _, row := range lines {
-		for _, char := range row {
-			fmt.Printf("%c", char)
-		}
-		fmt.Println()
-	}
-}
-
-var ( // GOLANG? how to make this const? const structs possible?
-	up    = Direction{true, true}
-	down  = Direction{true, false}
-	right = Direction{false, false}
-	left  = Direction{false, true}
-)
+// func pprint(lines [][]rune) {
+// 	for _, row := range lines {
+// 		for _, char := range row {
+// 			fmt.Printf("%c", char)
+// 		}
+// 		fmt.Println()
+// 	}
+// }
 
 func main() {
-	text, err := os.ReadFile("input.txt")
+	bytes, err := os.ReadFile("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
-	maze := cleanupData(text)
-	pprint(maze)
+	maze := cleanupData(bytes)
+	// pprint(maze)
 	result := part2(maze)
 	fmt.Printf("\nFinal result: %d", result)
 
 }
 
-// GOLANG? -> how to split by newline independently of if it is on mac \n or windows \r\n?
+// returns a 2D rune matrix (assumes unix-like newlines \n)
 func cleanupData(text []byte) [][]rune {
-	lines := strings.Split(strings.TrimSpace(string(text)), "\n")
+	lines := strings.Split(strings.TrimSpace(string(text)), "\n") // unix files
 	rows := make([][]rune, len(lines))
 	for i, line := range lines {
 		row := make([]rune, len(line))
@@ -50,22 +43,27 @@ func cleanupData(text []byte) [][]rune {
 	return rows
 }
 
-/*
-
-
- */
-
-type Direction struct {
-	upDown  bool // Up/Down or Right/Left
-	reverse bool // false: Down or Right, true: Up or Left
+// Directions up, down, left or right, defined as two booleans
+type ManhattanDirection struct {
+	isVertical bool
+	sign       bool
+	// The "sign" of direction is as if looking at the indexes in the array
+	// going right (or down) is positive (true), going left (or up) is going back, is negative (false)
 }
 
-func (d Direction) vector() (v DirectionVector) {
+var (
+	down  = ManhattanDirection{true, true}
+	up    = ManhattanDirection{true, false}
+	right = ManhattanDirection{false, true}
+	left  = ManhattanDirection{false, false}
+)
+
+func (d ManhattanDirection) toVector() (v Vector) {
 	n := 1
-	if d.reverse {
+	if !d.sign {
 		n = -1
 	}
-	if d.upDown {
+	if d.isVertical {
 		v.row = n
 	} else {
 		v.col = n
@@ -73,121 +71,98 @@ func (d Direction) vector() (v DirectionVector) {
 	return v
 }
 
-type DirectionVector struct {
-	row int // 0, -1 or 1
-	col int
-}
-
-func (v DirectionVector) direction() (d Direction) {
-	// assumes direction vector has exactly one of row/col != 0
-	if v.col != 0 {
-		d.upDown = true
-	}
-
-	if v.row < 0 || v.col < 0 {
-		d.reverse = true
-	}
-	return d
+type Vector struct {
+	row int // (x) 0, -1 or 1 for directions
+	col int // (-y)  0, -1 or 1 for directions
 }
 
 type Mirror struct {
-	straight bool
-	inverse  bool
+	isAxis    bool // is horizontal (x-axis) or vertical (y-axis)
+	keepsSign bool // for diagonals, if it inverses the direction (positive / negative orientation)
+	// keepsSign is "isVertical" for 1-axis mirrors (arbitrarily chosen)
+}
+
+func (m Mirror) isVertical() bool {
+	// meant for 1-Axis mirrors
+	return m.keepsSign
 }
 
 var mirrors map[rune]Mirror = map[rune]Mirror{
-	'-':  {straight: true, inverse: false},
-	'|':  {straight: true, inverse: true},
-	'/':  {straight: false, inverse: true},
-	'\\': {straight: false, inverse: false},
+	'-':  {isAxis: true, keepsSign: false},
+	'|':  {isAxis: true, keepsSign: true},
+	'/':  {isAxis: false, keepsSign: false},
+	'\\': {isAxis: false, keepsSign: true},
 }
 
-func getMirror(m rune) Mirror {
-	switch m {
-	case '-':
-		return Mirror{straight: true, inverse: false}
-	case '|':
-		return Mirror{straight: true, inverse: true}
-	case '/':
-		return Mirror{straight: false, inverse: true}
-	case '\\':
-		return Mirror{straight: false, inverse: false}
-	}
-	panic("Did not recognize mirror")
-}
+// Given a light direction and a colliding form, gives next direction(s)
+// of the light bean after reflecting.
+func reflections(d ManhattanDirection, char rune) []ManhattanDirection {
+	outcome := make([]ManhattanDirection, 0, 2)
 
-func reflections(d Direction, char rune) []Direction {
-	/*
-		>|^v    >/^  >\v  >->
-
-		^v|<    ^\<  v/<  <-<
-
-		v   ^	v	v	>	<
-		|	|	/	\	/	\
-		v	^	<	>	^	^
-
-		/ \ ==> upDown = !UpDown, / ==> reverse = !reverse
-		-
-	*/
-	outcome := make([]Direction, 0, 2)
-
-	mirror, isMirror := mirrors[char]
-	if !isMirror {
+	mirror, found := mirrors[char]
+	if !found { // it's a point, dont't change direction
 		return append(outcome, d)
 	}
-	if mirror.straight {
-		if mirror.inverse == d.upDown {
-			outcome = append(outcome, d)
-		} else {
-			outcome = append(outcome, Direction{!d.upDown, true})
-			outcome = append(outcome, Direction{!d.upDown, false})
-		}
-	} else {
-		if mirror.inverse {
-			outcome = append(outcome, Direction{!d.upDown, !d.reverse})
-		} else {
-			outcome = append(outcome, Direction{!d.upDown, d.reverse})
-		}
-		// outcome = append(outcome, Direction{!d.upDown, d.reverse != mirror.inverse})
 
+	if !mirror.isAxis { // it's either `/` or `\` (depending on .keepsSign property)
+		return append(outcome, ManhattanDirection{!d.isVertical, d.sign == mirror.keepsSign})
+		// equivalent to following, which might be easier to understand ?
+		// if !mirror.keepsSign {
+		// 	outcome = append(outcome, ManhattanDirection{!d.isVertical, !d.sign})
+		// } else {
+		// 	outcome = append(outcome, ManhattanDirection{!d.isVertical, d.sign})
+		// }
+	}
+	// only `|` or `-` left
+	if mirror.isVertical() == d.isVertical {
+		// same effect as point, don't change direction
+		return append(outcome, d)
 	}
 
-	return outcome
+	// is a splitter, add two directions
+	outcome = append(outcome, ManhattanDirection{!d.isVertical, true})
+	return append(outcome, ManhattanDirection{!d.isVertical, false})
 }
 
-type Tile struct {
-	row       int
-	col       int
-	direction Direction
+// Combination of position and direction
+type State struct {
+	position Vector
+	// row       int
+	// col       int
+	direction ManhattanDirection
 }
 
-func getAmountActivated(mirrors [][]rune, startTile Tile) (total int) {
-	visited := make(map[Tile]bool)
+func getAmountActivated(mirrors [][]rune, startState State) (total int) {
+	visited := make(map[State]bool)
 	activated := make([][]bool, len(mirrors))
 	for i, row := range mirrors {
 		activated[i] = make([]bool, len(row))
 	}
 	queue := list.New()
-	queue.PushBack(startTile)
-	step := 0
+	queue.PushBack(startState)
+	// BFS as it's queue based and not stack based. Both would work.
 	for e := queue.Front(); e != nil; e = e.Next() {
-		tile := e.Value.(Tile)
-		if visited[tile] {
-			continue // cycle detected (same position and direction) ==> skip
+		state := e.Value.(State)
+		if visited[state] {
+			// cycle detected, continue working on the queue without adding new states
+			continue
 		}
-		activated[tile.row][tile.col] = true
-		visited[tile] = true
-		char := mirrors[tile.row][tile.col]
-		nextDirections := reflections(tile.direction, char)
+		currentRow := state.position.row
+		currentCol := state.position.col
+		activated[currentRow][currentCol] = true
+		visited[state] = true
+		char := mirrors[currentRow][currentCol]
+		nextDirections := reflections(state.direction, char)
 		for _, d := range nextDirections {
-			row := tile.row + d.vector().row
-			col := tile.col + d.vector().col
+			directionVector := d.toVector()
+			row := currentRow + directionVector.row
+			col := currentCol + directionVector.col
 			if row < 0 || row >= len(mirrors) || col < 0 || col >= len(mirrors[0]) {
+				// index out of bounds, light beam going outside the playfield is ignored
 				continue
 			}
-			queue.PushBack(Tile{row: row, col: col, direction: d})
+			queue.PushBack(State{position: Vector{row: row, col: col}, direction: d})
 		}
-		step++
 	}
 	for _, row := range activated {
 		for _, active := range row {
@@ -199,19 +174,20 @@ func getAmountActivated(mirrors [][]rune, startTile Tile) (total int) {
 	return total
 }
 func part1(maze [][]rune) (total int) {
-	return getAmountActivated(maze, Tile{0, 0, Direction{}})
+	return getAmountActivated(maze, State{Vector{0, 0}, right})
 }
 
 func part2(maze [][]rune) (maxTotal int) {
+	// how to cache shared ways? 
 	for row := 0; row < len(maze); row++ {
-		leftToRightTotal := getAmountActivated(maze, Tile{row, 0, right})
-		rightToLeftTotal := getAmountActivated(maze, Tile{row, len(maze[row]) - 1, left})
+		leftToRightTotal := getAmountActivated(maze, State{Vector{row, 0}, right})
+		rightToLeftTotal := getAmountActivated(maze, State{Vector{row, len(maze[row]) - 1}, left})
 		maxTotal = max(maxTotal, leftToRightTotal, rightToLeftTotal)
 	}
 
 	for col := 0; col < len(maze[0]); col++ {
-		upToDownTotal := getAmountActivated(maze, Tile{0, col, up})
-		downToUpTotal := getAmountActivated(maze, Tile{len(maze) - 1, col, down})
+		upToDownTotal := getAmountActivated(maze, State{Vector{0, col}, down})
+		downToUpTotal := getAmountActivated(maze, State{Vector{len(maze) - 1, col}, up})
 		maxTotal = max(maxTotal, upToDownTotal, downToUpTotal)
 	}
 	return maxTotal
