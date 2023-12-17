@@ -8,14 +8,14 @@ import (
 	"strings"
 )
 
-// func pprint(lines [][]rune) {
-// 	for _, row := range lines {
-// 		for _, char := range row {
-// 			fmt.Printf("%c", char)
-// 		}
-// 		fmt.Println()
-// 	}
-// }
+func pprint(lines [][]int) {
+	for _, row := range lines {
+		for _, char := range row {
+			fmt.Printf("%d ", char)
+		}
+		fmt.Println()
+	}
+}
 
 func main() {
 	bytes, err := os.ReadFile("test.txt")
@@ -23,7 +23,7 @@ func main() {
 		log.Fatal(err)
 	}
 	maze := cleanupData(bytes)
-	// pprint(maze)
+	pprint(maze)
 	result := part1(maze)
 	fmt.Printf("\nFinal result: %d", result)
 
@@ -115,6 +115,7 @@ func possibleNextStates(state State) []State {
 			direction: d1,
 			streak:    1,
 		})
+	fmt.Printf("\\\\Possible next states: %#v\n", newStates)
 	return newStates
 }
 
@@ -122,7 +123,7 @@ type State struct {
 	position Vector
 	distance int
 	// here priority = inverse of distance
-	index     int
+	// index     int
 	direction ManhattanDirection
 	streak    int
 }
@@ -136,32 +137,32 @@ func (pq PriorityQueue) Less(i, j int) bool {
 }
 func (pq PriorityQueue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
-	pq[i].index = i
-	pq[j].index = j
+	// pq[i].index = i
+	// pq[j].index = j
 }
 
 func (pq *PriorityQueue) Push(x any) {
-	n := len(*pq)
-	item := x.(*State)
-	item.index = n
-	*pq = append(*pq, item)
+	// n := len(*pq)
+	// item :=
+	// item.index = n
+	*pq = append(*pq, x.(*State))
 }
 
 func (pq *PriorityQueue) Pop() any {
 	old := *pq
 	n := len(old)
 	item := old[n-1]
-	old[n-1] = nil  // avoid memory leak
-	item.index = -1 // for safety
+	// old[n-1] = nil  // avoid memory leak
+	// item.index = -1 // for safety
 	*pq = old[0 : n-1]
 	return item
 }
 
 // update modifies the priority and value of an Item in the queue.
-func (pq *PriorityQueue) update(item *State, distance int) {
-	item.distance = distance
-	heap.Fix(pq, item.index)
-}
+// func (pq *PriorityQueue) update(item *State, distance int) {
+// 	item.distance = distance
+// 	heap.Fix(pq, item.index)
+// }
 
 // func (position Vector) toInitialQueueIndex(maze [][]int) int {
 // 	return position.row*len(maze[0]) + position.col
@@ -185,6 +186,8 @@ func findShortestPath(maze [][]int, source State) (total int) {
 		for j := range distances {
 			if i != source.position.row || j != source.position.col {
 				distances[i][j] = infinite
+			} else {
+				distances[i][j] = maze[i][j]
 			}
 
 			// queueIndex := i*len(row) + j
@@ -210,30 +213,42 @@ func findShortestPath(maze [][]int, source State) (total int) {
 		// state := e.Value.(State)
 		state := *heap.Pop(&pq).(*State)
 		fmt.Printf("| Working with State %#v\n", state)
-		if visited[state.position.col][state.position.col] {
+		if visited[state.position.row][state.position.col] {
 
-			fmt.Print("- Skipped because visited already\n")
+			fmt.Print("\\ Skipped because visited already\n")
 			continue
 		}
-		visited[state.position.col][state.position.col] = true
-		currentDistance := distances[state.position.col][state.position.col]
-		fmt.Printf("| Current Distance %d\n", currentDistance)
+		visited[state.position.row][state.position.col] = true
+		// currentDistance := distances[state.position.col][state.position.col]
+		fmt.Printf("| Current Distance %d\n", state.distance)
 		for _, newState := range possibleNextStates(state) {
 
 			fmt.Printf("|| Adjacent state %#v\n", newState)
 			row := newState.position.row
 			col := newState.position.col
 			if newState.position.isOutOfBounds(maze) || visited[row][col] {
-				fmt.Print("|- Skipped because OOB\n")
+				fmt.Print("|\\ Skipped because OOB\n")
 				continue
 			}
 			previousDist := distances[row][col]
-			newState.distance = currentDistance + maze[row][row]
+			newState.distance = state.distance + maze[row][col]
 			if newState.distance < previousDist {
 				fmt.Printf("|| new distance %d for adjacent is tinier than previous %d\n", newState.distance, previousDist)
 				distances[row][col] = newState.distance
 			}
-			pq.Push(&newState)
+			fmt.Printf("|\\ Pushed new state into heap: %#v\n", newState)
+			heap.Push(&pq, &newState)
+			fmt.Println(newState.position,
+				newState.distance,
+				newState.direction,
+				newState.streak)
+			heap.Push(&pq, &State{
+				newState.position,
+				newState.distance,
+				newState.direction,
+				newState.streak,
+			})
+			// heap.Push(&pq, &newState)
 
 		}
 		// careful possible directions, not out of bounds, not visited
@@ -244,7 +259,7 @@ func findShortestPath(maze [][]int, source State) (total int) {
 func part1(maze [][]int) (total int) {
 	return findShortestPath(maze, State{
 		position:  Vector{0, 0},
-		distance:  0,
+		distance:  maze[0][0],
 		direction: right,
 		streak:    0,
 	})
