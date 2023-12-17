@@ -11,7 +11,7 @@ import (
 func pprint(lines [][]int) {
 	for _, row := range lines {
 		for _, char := range row {
-			fmt.Printf("%d ", char)
+			fmt.Printf("%03d ", char)
 		}
 		fmt.Println()
 	}
@@ -187,7 +187,7 @@ func findShortestPath(maze [][]int, source State) (total int) {
 			if i != source.position.row || j != source.position.col {
 				distances[i][j] = infinite
 			} else {
-				distances[i][j] = maze[i][j]
+				distances[i][j] = source.distance
 			}
 
 			// queueIndex := i*len(row) + j
@@ -237,11 +237,11 @@ func findShortestPath(maze [][]int, source State) (total int) {
 				distances[row][col] = newState.distance
 			}
 			fmt.Printf("|\\ Pushed new state into heap: %#v\n", newState)
-			heap.Push(&pq, &newState)
-			fmt.Println(newState.position,
-				newState.distance,
-				newState.direction,
-				newState.streak)
+			// heap.Push(&pq, &newState)
+			// fmt.Println(newState.position,
+			// 	newState.distance,
+			// 	newState.direction,
+			// 	newState.streak)
 			heap.Push(&pq, &State{
 				newState.position,
 				newState.distance,
@@ -254,13 +254,19 @@ func findShortestPath(maze [][]int, source State) (total int) {
 		// careful possible directions, not out of bounds, not visited
 	}
 
-	return total
+	pprint(distances)
+	return distances[len(distances)-1][len(distances[0])-1]
 }
 func part1(maze [][]int) (total int) {
+	// x := len(maze) -1
+	// y := len(maze[0]) -1
+	x, y := 0, 0
+
 	return findShortestPath(maze, State{
-		position:  Vector{0, 0},
-		distance:  maze[0][0],
-		direction: right,
+		position: Vector{x, y},
+		// distance:  maze[x][y],
+		distance:  0, // already at this position, not entering it
+		direction: left,
 		streak:    0,
 	})
 }
