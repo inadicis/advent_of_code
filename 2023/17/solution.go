@@ -26,7 +26,8 @@ func main() {
 	pprint(maze)
 	result := part1(maze)
 	fmt.Printf("\nFinal result: %d", result)
-
+	// 1294 too high
+	// 1255 too low
 }
 
 // returns a 2D rune matrix (assumes unix-like newlines \n)
@@ -115,7 +116,7 @@ func possibleNextStates(state State) []State {
 			direction: d1,
 			streak:    1,
 		})
-	fmt.Printf("\\\\Possible next states: %#v\n", newStates)
+	// fmt.Printf("\\\\Possible next states: %#v\n", newStates)
 	return newStates
 }
 
@@ -124,6 +125,12 @@ type State struct {
 	distance int
 	// here priority = inverse of distance
 	// index     int
+	direction ManhattanDirection
+	streak    int
+}
+
+type Visited struct {
+	position  Vector
 	direction ManhattanDirection
 	streak    int
 }
@@ -173,17 +180,17 @@ func findShortestPath(maze [][]int, source State) (total int) {
 	// using a simple priority queue -> TODO implement fibonacci heap
 	infinite := 1
 	distances := make([][]int, len(maze))
-	visited := make([][]bool, len(maze))
+	visited := make(map[Visited]bool)
 	for _, row := range maze {
 		for _, weight := range row {
 			infinite += weight
 		}
 	}
+
 	// pq := make(PriorityQueue, len(maze)*len(maze[0]))
 	for i, row := range maze {
-		visited[i] = make([]bool, len(row))
 		distances[i] = make([]int, len(row))
-		for j := range distances {
+		for j := range row {
 			if i != source.position.row || j != source.position.col {
 				distances[i][j] = infinite
 			} else {
@@ -212,32 +219,31 @@ func findShortestPath(maze [][]int, source State) (total int) {
 	for pq.Len() > 0 {
 		// state := e.Value.(State)
 		state := *heap.Pop(&pq).(*State)
-		fmt.Printf("| Working with State %#v\n", state)
-		if visited[state.position.row][state.position.col] {
-
-			fmt.Print("\\ Skipped because visited already\n")
+		// fmt.Printf("| Working with State %#v\n", state)
+		if visited[Visited{state.position, state.direction, state.streak}] {
+			// fmt.Print("\\ Skipped because visited already with this exact direction/streak\n")
 			continue
 		}
-		visited[state.position.row][state.position.col] = true
+		visited[Visited{state.position, state.direction, state.streak}] = true
 		// currentDistance := distances[state.position.col][state.position.col]
-		fmt.Printf("| Current Distance %d\n", state.distance)
+		// fmt.Printf("| Current Distance %d\n", state.distance)
 		for _, newState := range possibleNextStates(state) {
 
-			fmt.Printf("|| Adjacent state %#v\n", newState)
+			// fmt.Printf("|| Adjacent state %#v\n", newState)
 			row := newState.position.row
 			col := newState.position.col
-			if newState.position.isOutOfBounds(maze) || visited[row][col] {
-				fmt.Print("|\\ Skipped because OOB\n")
+			if newState.position.isOutOfBounds(maze) || visited[Visited{newState.position, newState.direction, newState.streak}] {
+				// fmt.Print("|\\ Skipped because OOB or visited\n")
 				continue
 			}
 			previousDist := distances[row][col]
 			newState.distance = state.distance + maze[row][col]
 			if newState.distance < previousDist {
-				fmt.Printf("|| new distance %d for adjacent is tinier than previous %d\n", newState.distance, previousDist)
+				// fmt.Printf("|| new distance %d for adjacent is tinier than previous %d\n", newState.distance, previousDist)
 				distances[row][col] = newState.distance
 			}
-			fmt.Printf("|\\ Pushed new state into heap: %#v\n", newState)
-			// heap.Push(&pq, &newState)
+			// fmt.Printf("|\\ Pushed new state into heap: %#v\n", newState)
+			// heap.Push(&pq, &newState) // why is this not equivalent
 			// fmt.Println(newState.position,
 			// 	newState.distance,
 			// 	newState.direction,
@@ -266,7 +272,7 @@ func part1(maze [][]int) (total int) {
 		position: Vector{x, y},
 		// distance:  maze[x][y],
 		distance:  0, // already at this position, not entering it
-		direction: left,
+		direction: right,
 		streak:    0,
 	})
 }
