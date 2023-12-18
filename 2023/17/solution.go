@@ -33,6 +33,9 @@ func main() {
 	fmt.Printf("\nFinal result: %d", result)
 	// 1294 too high
 	// 1255 too low
+	// 1256 correct .............
+
+	// part 2 1390 too high
 }
 
 // returns a 2D rune matrix (assumes unix-like newlines \n)
@@ -99,7 +102,7 @@ func (v Vector) isOutOfBounds(maze [][]int) bool {
 
 func possibleNextStates(state State) []State {
 	newStates := make([]State, 0, 3)
-	if state.streak < 3 {
+	if state.streak < 10 {
 		s := State{
 			position:  state.position.add(state.direction.toVector()),
 			direction: state.direction,
@@ -107,20 +110,23 @@ func possibleNextStates(state State) []State {
 		newStates = append(newStates, s)
 	}
 	// left and right
-	d1 := ManhattanDirection{isVertical: !state.direction.isVertical, sign: true}
-	d2 := ManhattanDirection{isVertical: !state.direction.isVertical, sign: false}
-	newStates = append(newStates,
-		State{
-			position:  state.position.add(d1.toVector()),
-			direction: d1,
-			streak:    1,
-		})
-	newStates = append(newStates,
-		State{
-			position:  state.position.add(d2.toVector()),
-			direction: d2,
-			streak:    1,
-		})
+	if state.streak == 0 || state.streak >= 4 {
+		d1 := ManhattanDirection{isVertical: !state.direction.isVertical, sign: true}
+		d2 := ManhattanDirection{isVertical: !state.direction.isVertical, sign: false}
+		newStates = append(newStates,
+			State{
+				position:  state.position.add(d1.toVector()),
+				direction: d1,
+				streak:    1,
+			})
+		newStates = append(newStates,
+			State{
+				position:  state.position.add(d2.toVector()),
+				direction: d2,
+				streak:    1,
+			})
+	}
+
 	// fmt.Printf("\\\\Possible next states: %#v\n", newStates)
 	return newStates
 }
@@ -254,7 +260,9 @@ func findShortestPath(maze [][]int, source State) (total int) {
 				if debug {
 					// fmt.Printf("|| new distance %d for adjacent is tinier than previous %d\n", newD, previousDist)
 				}
-				distances[row][col] = newD
+				if newState.streak >= 4 {
+					distances[row][col] = newD
+				}
 			}
 			s := State{
 				newState.position,
