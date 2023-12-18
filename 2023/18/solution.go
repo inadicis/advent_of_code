@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -28,8 +29,10 @@ func main() {
 		log.Fatal(err)
 	}
 	instructions := cleanupData(bytes)
+	result2 := part1(instructions)
+	fmt.Printf("Actual result: %d\n", result2)
 	result := part1Optimized(instructions)
-	fmt.Printf("\nFinal result: %d", result)
+	fmt.Printf("\nFinal result: %d\n", result)
 }
 
 type Instruction struct {
@@ -191,7 +194,7 @@ func part1(instructions []Instruction) (total int) {
 	fmt.Println("caclulated edges")
 	holes := fill(edge)
 	fmt.Println("caclulated fill")
-	// pprint(holes)
+	pprint(holes)
 	return countTrue(holes)
 
 }
@@ -205,7 +208,7 @@ type VerticalEdge struct {
 func getVerticalEdges(instructions []Instruction) ([]VerticalEdge, Vector) {
 	e := make([]VerticalEdge, 0, len(instructions)/2+1)
 	dimensions, startPos := getInitialState(instructions)
-	fmt.Printf("dimensions %#v, startPos %v\n", dimensions, startPos)
+	// fmt.Printf("dimensions %#v, startPos %v\n", dimensions, startPos)
 	currentPos := startPos
 	for _, instruction := range instructions {
 		col := currentPos.col
@@ -268,7 +271,7 @@ func splitEdgesIntoSharedVerticalBatches(edges []VerticalEdge) [][]VerticalEdge 
 		pq[2*i+1] = &State{e, e.rowEnd, false}
 	}
 	heap.Init(&pq)
-	fmt.Printf("Priority queue initialized, len: %d\n", len(pq))
+	// fmt.Printf("Priority queue initialized, len: %d\n", len(pq))
 	batches := make([][]VerticalEdge, 0, len(edges)) // at least one batch per vertical edge if no intersections
 	previousEdges := make([]VerticalEdge, 0)
 	// currentIndex := 0
@@ -307,7 +310,6 @@ func splitEdgesIntoSharedVerticalBatches(edges []VerticalEdge) [][]VerticalEdge 
 		// 	if previousEdge.rowEnd <
 		// }
 	}
-	fmt.Printf("%#v\n", batches)
 	return batches
 }
 
@@ -315,18 +317,24 @@ func part1Optimized(instructions []Instruction) (total int64) {
 	verticalEdges, dimensions := getVerticalEdges(instructions)
 	// fmt.Printf("%#v\n", verticalEdges)
 	fmt.Printf("%#v\n", dimensions)
-	for i, e := range verticalEdges {
-		fmt.Printf("i %03d: col %d, row %d -> %d\n", i, e.col, e.rowStart, e.rowEnd)
-	}
+	// for i, e := range verticalEdges {
+	// fmt.Printf("i %03d: col %d, row %d -> %d\n", i, e.col, e.rowStart, e.rowEnd)
+	// }
 	batches := splitEdgesIntoSharedVerticalBatches(verticalEdges)
 
 	for i, b := range batches {
+		slices.SortFunc(b, func(a, b VerticalEdge) int { return int(a.col - b.col) })
 		fmt.Printf("Batch i %03d: (%d -> %d) : [ ", i, b[0].rowStart, b[0].rowEnd)
 		for _, e := range b {
 			fmt.Printf("col %d,", e.col)
 		}
 		fmt.Println(" ]")
+		for i := 0; i < len(b); i += 2 {
+			total += (b[i+1].col - b[i].col + 1) * (b[i].rowEnd - b[i].rowStart + 1)
+			// counts twice the intersection between the rectangles one above the other
+		}
 	}
+
 	// pprint(edge)
 	// println()
 	// fmt.Println("caclulated edges")
@@ -334,7 +342,7 @@ func part1Optimized(instructions []Instruction) (total int64) {
 	// fmt.Println("caclulated fill")
 	// pprint(holes)
 	// return countTrue(holes)
-	return int64(0)
+	return total
 
 }
 
@@ -370,13 +378,8 @@ func fixInstructions(instructions []Instruction) []Instruction {
 	return newInstructions
 }
 
-func part2(instructions []Instruction) (maxTotal int) {
+func part2(instructions []Instruction) (maxTotal int64) {
 	actualInstructions := fixInstructions(instructions)
 	fmt.Printf("fixed instructions")
-	// for _, i := range actualInstructions {
-	// 	fmt.Printf("%#v\n", i)
-	// }
-	// fmt.Printf()
-	// how to cache shared ways?
-	return part1(actualInstructions) // brute force, would need slice-logic to optimize?
+	return part1Optimized(actualInstructions)
 }
