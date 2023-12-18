@@ -18,7 +18,12 @@ func pprint(lines [][]int) {
 }
 
 func main() {
-	bytes, err := os.ReadFile("test.txt")
+	bytes, err := os.ReadFile("input.txt")
+	// TODO find out why test2.txt has 12 at row 0, col 4 instead of 10 => typo d1/d2 in next possible directions
+	// TODO find out how a way can be lower than the actual result?? (input.txt)
+	// to debug input.txt i could change algorithm so that i store the final path to the last
+	// cell then write a qa algo that checks if not more than 3 times in a row + sums are correct
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -113,7 +118,7 @@ func possibleNextStates(state State) []State {
 	newStates = append(newStates,
 		State{
 			position:  state.position.add(d2.toVector()),
-			direction: d1,
+			direction: d2,
 			streak:    1,
 		})
 	// fmt.Printf("\\\\Possible next states: %#v\n", newStates)
@@ -215,7 +220,7 @@ func findShortestPath(maze [][]int, source State) (total int) {
 
 	// currentDirection := ManhattanDirection{}
 	// currentStreak := 0
-	fmt.Printf("Initialized: %#v\n %#v\n", source, distances)
+	// fmt.Printf("Initialized: %#v\n %#v\n", source, distances)
 	for pq.Len() > 0 {
 		// state := e.Value.(State)
 		state := *heap.Pop(&pq).(*State)
@@ -232,34 +237,48 @@ func findShortestPath(maze [][]int, source State) (total int) {
 			// fmt.Printf("|| Adjacent state %#v\n", newState)
 			row := newState.position.row
 			col := newState.position.col
+			debug := row == 0 && col == 4
+			if debug {
+				// fmt.Printf("\n previous state: %#v\n new state %#v\n", state, newState)
+				// fmt.Println("added weight", maze[row][col])
+			}
 			if newState.position.isOutOfBounds(maze) || visited[Visited{newState.position, newState.direction, newState.streak}] {
-				// fmt.Print("|\\ Skipped because OOB or visited\n")
+				if debug {
+					// fmt.Print("|\\ Skipped because OOB or visited\n")
+				}
 				continue
 			}
 			previousDist := distances[row][col]
-			newState.distance = state.distance + maze[row][col]
-			if newState.distance < previousDist {
-				// fmt.Printf("|| new distance %d for adjacent is tinier than previous %d\n", newState.distance, previousDist)
-				distances[row][col] = newState.distance
+			newD := state.distance + maze[row][col]
+			if newD < previousDist {
+				if debug {
+					// fmt.Printf("|| new distance %d for adjacent is tinier than previous %d\n", newD, previousDist)
+				}
+				distances[row][col] = newD
 			}
-			// fmt.Printf("|\\ Pushed new state into heap: %#v\n", newState)
+			s := State{
+				newState.position,
+				newD,
+				newState.direction,
+				newState.streak,
+			}
+			if debug {
+				// fmt.Printf("|\\ Pushing new state into heap: %#v\n", s)
+			}
 			// heap.Push(&pq, &newState) // why is this not equivalent
 			// fmt.Println(newState.position,
 			// 	newState.distance,
 			// 	newState.direction,
 			// 	newState.streak)
-			heap.Push(&pq, &State{
-				newState.position,
-				newState.distance,
-				newState.direction,
-				newState.streak,
-			})
+			// fmt.Printf("heap before: %#v\n", pq)
+			heap.Push(&pq, &s)
+			// fmt.Printf("heap after: %#v\n", pq)
 			// heap.Push(&pq, &newState)
 
 		}
 		// careful possible directions, not out of bounds, not visited
 	}
-
+	fmt.Println()
 	pprint(distances)
 	return distances[len(distances)-1][len(distances[0])-1]
 }
@@ -272,7 +291,7 @@ func part1(maze [][]int) (total int) {
 		position: Vector{x, y},
 		// distance:  maze[x][y],
 		distance:  0, // already at this position, not entering it
-		direction: right,
+		direction: down,
 		streak:    0,
 	})
 }
