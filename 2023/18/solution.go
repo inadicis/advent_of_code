@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/heap"
 	"fmt"
 	"log"
 	"os"
@@ -27,13 +28,13 @@ func main() {
 		log.Fatal(err)
 	}
 	instructions := cleanupData(bytes)
-	result := part2(instructions)
+	result := part1Optimized(instructions)
 	fmt.Printf("\nFinal result: %d", result)
 }
 
 type Instruction struct {
 	direction ManhattanDirection
-	amount    uint64
+	amount    int64
 	color     string
 }
 
@@ -57,7 +58,7 @@ func cleanupData(text []byte) []Instruction {
 		}
 		instructions[i] = Instruction{
 			direction: d,
-			amount:    uint64(a),
+			amount:    int64(a),
 			color:     elements[2],
 		}
 	}
@@ -80,7 +81,7 @@ var (
 )
 
 func (d ManhattanDirection) toVector() (v Vector) {
-	n := 1
+	n := int64(1)
 	if !d.sign {
 		n = -1
 	}
@@ -93,8 +94,8 @@ func (d ManhattanDirection) toVector() (v Vector) {
 }
 
 type Vector struct {
-	row int // (x) 0, -1 or 1 for directions
-	col int // (-y)  0, -1 or 1 for directions
+	row int64 // (x) 0, -1 or 1 for directions
+	col int64 // (-y)  0, -1 or 1 for directions
 }
 
 func (v Vector) add(v2 Vector) Vector {
@@ -102,17 +103,16 @@ func (v Vector) add(v2 Vector) Vector {
 }
 
 func (v Vector) isOutOfBounds(maze [][]int) bool {
-	return v.row < 0 || v.col < 0 || v.row >= len(maze) || v.col >= len(maze[v.row])
+	return v.row < 0 || v.col < 0 || v.row >= int64(len(maze)) || v.col >= int64(len(maze[v.row]))
 }
 
 func getInitialState(instructions []Instruction) (dimensions Vector, startPosition Vector) {
 	currentPos := Vector{}
 
-	var minRow, minCol, maxRow, maxCol int
+	var minRow, minCol, maxRow, maxCol int64
 	for _, instruction := range instructions {
-		for i := uint64(0); i < instruction.amount; i++ {
-			currentPos = currentPos.add(instruction.direction.toVector())
-		}
+		dirVector := instruction.direction.toVector()
+		currentPos = currentPos.add(Vector{dirVector.row * instruction.amount, dirVector.col * instruction.amount})
 		maxRow = max(currentPos.row, maxRow)
 		maxCol = max(currentPos.col, maxCol)
 		minRow = min(currentPos.row, minRow) // offset to startPos
@@ -132,7 +132,7 @@ func dig(instructions []Instruction) [][]bool {
 	}
 	currentPosition := startPos
 	for _, instruction := range instructions {
-		for i := uint64(0); i < instruction.amount; i++ {
+		for i := int64(0); i < instruction.amount; i++ {
 			digged[currentPosition.row][currentPosition.col] = true
 			currentPosition = currentPosition.add(instruction.direction.toVector())
 			// currently ignoring color
@@ -196,12 +196,154 @@ func part1(instructions []Instruction) (total int) {
 
 }
 
+type VerticalEdge struct {
+	col      int64
+	rowStart int64
+	rowEnd   int64
+}
+
+func getVerticalEdges(instructions []Instruction) ([]VerticalEdge, Vector) {
+	e := make([]VerticalEdge, 0, len(instructions)/2+1)
+	dimensions, startPos := getInitialState(instructions)
+	fmt.Printf("dimensions %#v, startPos %v\n", dimensions, startPos)
+	currentPos := startPos
+	for _, instruction := range instructions {
+		col := currentPos.col
+		startRow := currentPos.row
+		dirVector := instruction.direction.toVector()
+		currentPos = currentPos.add(Vector{dirVector.row * instruction.amount, dirVector.col * instruction.amount})
+		endRow := currentPos.row
+		if instruction.direction.isVertical {
+			if endRow < startRow {
+				startRow, endRow = endRow, startRow
+			}
+			e = append(e, VerticalEdge{col, startRow, endRow})
+		}
+	}
+
+	return e, dimensions
+}
+
+type State struct {
+	edge        VerticalEdge
+	changeIndex int64
+	isStart     bool
+}
+
+type PriorityQueue []*State
+
+func (pq PriorityQueue) Len() int { return len(pq) }
+
+func (pq PriorityQueue) Less(i, j int) bool { // lower value has higher priority
+	return pq[i].changeIndex < pq[j].changeIndex
+}
+func (pq PriorityQueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+	// pq[i].index = i
+	// pq[j].index = j
+}
+
+func (pq *PriorityQueue) Push(x any) {
+	// n := len(*pq)
+	// item :=
+	// item.index = n
+	*pq = append(*pq, x.(*State))
+}
+
+func (pq *PriorityQueue) Pop() any {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	// old[n-1] = nil  // avoid memory leak
+	// item.index = -1 // for safety
+	*pq = old[0 : n-1]
+	return item
+}
+
+func splitEdgesIntoSharedVerticalBatches(edges []VerticalEdge) [][]VerticalEdge {
+	// slices.SortFunc(edges, func(a VerticalEdge, b VerticalEdge) int { return int(a.rowStart - b.rowStart) })
+	pq := make(PriorityQueue, 2*len(edges))
+	for i, e := range edges {
+		pq[2*i] = &State{e, e.rowStart, true}
+		pq[2*i+1] = &State{e, e.rowEnd, false}
+	}
+	heap.Init(&pq)
+	fmt.Printf("Priority queue initialized, len: %d\n", len(pq))
+	batches := make([][]VerticalEdge, 0, len(edges)) // at least one batch per vertical edge if no intersections
+	previousEdges := make([]VerticalEdge, 0)
+	// currentIndex := 0
+	for pq.Len() > 0 {
+		state := heap.Pop(&pq).(*State)
+		newBatch := make([]VerticalEdge, 0, len(previousEdges))
+		updatedPreviousEdges := make([]VerticalEdge, 0, len(previousEdges))
+		fmt.Printf("New change at row %d, isStart %t, len(previousEdges)=%d\n", state.changeIndex, state.isStart, len(previousEdges))
+		fmt.Printf("%v\n", state.edge)
+		for _, previousEdge := range previousEdges {
+			// because of heap condition, they all go at least as far as state.changeIndex
+			if state.changeIndex > previousEdge.rowStart {
+				newBatch = append(newBatch, VerticalEdge{col: previousEdge.col, rowStart: previousEdge.rowStart, rowEnd: state.changeIndex})
+			}
+			if previousEdge.rowEnd > state.changeIndex {
+				updatedPreviousEdges = append(updatedPreviousEdges, VerticalEdge{
+					col:      previousEdge.col,
+					rowStart: state.changeIndex,
+					rowEnd:   previousEdge.rowEnd,
+				})
+			}
+			previousEdges = updatedPreviousEdges
+		}
+		if state.isStart {
+			fmt.Printf("Appending edge %d->%d to previousEdges\n", state.edge.rowStart, state.edge.rowEnd)
+			previousEdges = append(previousEdges, state.edge)
+		}
+		fmt.Printf("Previous Edges: %v\n", previousEdges)
+		fmt.Printf("New Batch: %v\n", newBatch)
+		if len(newBatch) > 0 {
+			batches = append(batches, newBatch)
+		}
+		// TODO careful about edges that change at the same row
+		// for _, newEdge := range edges {
+		// for _, previousEdge := range previousEdges{
+		// 	if previousEdge.rowEnd <
+		// }
+	}
+	fmt.Printf("%#v\n", batches)
+	return batches
+}
+
+func part1Optimized(instructions []Instruction) (total int64) {
+	verticalEdges, dimensions := getVerticalEdges(instructions)
+	// fmt.Printf("%#v\n", verticalEdges)
+	fmt.Printf("%#v\n", dimensions)
+	for i, e := range verticalEdges {
+		fmt.Printf("i %03d: col %d, row %d -> %d\n", i, e.col, e.rowStart, e.rowEnd)
+	}
+	batches := splitEdgesIntoSharedVerticalBatches(verticalEdges)
+
+	for i, b := range batches {
+		fmt.Printf("Batch i %03d: (%d -> %d) : [ ", i, b[0].rowStart, b[0].rowEnd)
+		for _, e := range b {
+			fmt.Printf("col %d,", e.col)
+		}
+		fmt.Println(" ]")
+	}
+	// pprint(edge)
+	// println()
+	// fmt.Println("caclulated edges")
+	// holes := fill(edge)
+	// fmt.Println("caclulated fill")
+	// pprint(holes)
+	// return countTrue(holes)
+	return int64(0)
+
+}
+
 func fixInstructions(instructions []Instruction) []Instruction {
 	newInstructions := make([]Instruction, len(instructions))
 	for i, inst := range instructions {
 		hexAmount := inst.color[2:7]
 		direction := inst.color[7]
-		a, err := strconv.ParseUint(hexAmount, 16, 64)
+		a, err := strconv.ParseInt(hexAmount, 16, 64)
 		if err != nil {
 			panic(err)
 		}
