@@ -22,24 +22,18 @@ func pprint(lines [][]bool) {
 }
 
 func main() {
-	bytes, err := os.ReadFile("input.txt")
-	// TODO find out why test2.txt has 12 at row 0, col 4 instead of 10 => typo d1/d2 in next possible directions
-	// TODO find out how a way can be lower than the actual result?? (input.txt)
-	// to debug input.txt i could change algorithm so that i store the final path to the last
-	// cell then write a qa algo that checks if not more than 3 times in a row + sums are correct
-
+	bytes, err := os.ReadFile("test.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 	instructions := cleanupData(bytes)
-	result := part1(instructions)
+	result := part2(instructions)
 	fmt.Printf("\nFinal result: %d", result)
-	// 52882 too high
 }
 
 type Instruction struct {
 	direction ManhattanDirection
-	amount    int
+	amount    uint64
 	color     string
 }
 
@@ -63,7 +57,7 @@ func cleanupData(text []byte) []Instruction {
 		}
 		instructions[i] = Instruction{
 			direction: d,
-			amount:    a,
+			amount:    uint64(a),
 			color:     elements[2],
 		}
 	}
@@ -111,57 +105,12 @@ func (v Vector) isOutOfBounds(maze [][]int) bool {
 	return v.row < 0 || v.col < 0 || v.row >= len(maze) || v.col >= len(maze[v.row])
 }
 
-type State struct {
-	position Vector
-	distance int
-	// here priority = inverse of distance
-	// index     int
-	direction ManhattanDirection
-	streak    int
-}
-
-type Visited struct {
-	position  Vector
-	direction ManhattanDirection
-	streak    int
-}
-
-// type PriorityQueue []*State
-
-// func (pq PriorityQueue) Len() int { return len(pq) }
-
-// func (pq PriorityQueue) Less(i, j int) bool {
-// 	return pq[i].distance < pq[j].distance
-// }
-// func (pq PriorityQueue) Swap(i, j int) {
-// 	pq[i], pq[j] = pq[j], pq[i]
-// 	// pq[i].index = i
-// 	// pq[j].index = j
-// }
-
-// func (pq *PriorityQueue) Push(x any) {
-// 	// n := len(*pq)
-// 	// item :=
-// 	// item.index = n
-// 	*pq = append(*pq, x.(*State))
-// }
-
-// func (pq *PriorityQueue) Pop() any {
-// 	old := *pq
-// 	n := len(old)
-// 	item := old[n-1]
-// 	// old[n-1] = nil  // avoid memory leak
-// 	// item.index = -1 // for safety
-// 	*pq = old[0 : n-1]
-// 	return item
-// }
-
 func getInitialState(instructions []Instruction) (dimensions Vector, startPosition Vector) {
 	currentPos := Vector{}
 
 	var minRow, minCol, maxRow, maxCol int
 	for _, instruction := range instructions {
-		for i := 0; i < instruction.amount; i++ {
+		for i := uint64(0); i < instruction.amount; i++ {
 			currentPos = currentPos.add(instruction.direction.toVector())
 		}
 		maxRow = max(currentPos.row, maxRow)
@@ -183,7 +132,7 @@ func dig(instructions []Instruction) [][]bool {
 	}
 	currentPosition := startPos
 	for _, instruction := range instructions {
-		for i := 0; i < instruction.amount; i++ {
+		for i := uint64(0); i < instruction.amount; i++ {
 			digged[currentPosition.row][currentPosition.col] = true
 			currentPosition = currentPosition.add(instruction.direction.toVector())
 			// currently ignoring color
@@ -237,16 +186,55 @@ func countTrue(mask [][]bool) (total int) {
 
 func part1(instructions []Instruction) (total int) {
 	edge := dig(instructions)
-	pprint(edge)
-	println()
+	// pprint(edge)
+	// println()
+	fmt.Println("caclulated edges")
 	holes := fill(edge)
-	pprint(holes)
+	fmt.Println("caclulated fill")
+	// pprint(holes)
 	return countTrue(holes)
 
 }
 
-func part2(maze [][]rune) (maxTotal int) {
-	// how to cache shared ways?
+func fixInstructions(instructions []Instruction) []Instruction {
+	newInstructions := make([]Instruction, len(instructions))
+	for i, inst := range instructions {
+		hexAmount := inst.color[2:7]
+		direction := inst.color[7]
+		a, err := strconv.ParseUint(hexAmount, 16, 64)
+		if err != nil {
+			panic(err)
+		}
+		// fmt.Printf("i %03d: hexAmount %q, direction %q\n", i, hexAmount, direction)
+		d := right
+		switch direction {
+		case '0':
+			d = right
+		case '1':
+			d = down
+		case '2':
+			d = left
+		case '3':
+			d = up
+		default:
+			panic("not recognized direction")
+		}
+		newInst := Instruction{
+			amount:    a,
+			direction: d,
+		}
+		newInstructions[i] = newInst
+	}
+	return newInstructions
+}
 
-	return maxTotal
+func part2(instructions []Instruction) (maxTotal int) {
+	actualInstructions := fixInstructions(instructions)
+	fmt.Printf("fixed instructions")
+	// for _, i := range actualInstructions {
+	// 	fmt.Printf("%#v\n", i)
+	// }
+	// fmt.Printf()
+	// how to cache shared ways?
+	return part1(actualInstructions) // brute force, would need slice-logic to optimize?
 }
