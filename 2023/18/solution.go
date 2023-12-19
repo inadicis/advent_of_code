@@ -10,29 +10,17 @@ import (
 	"strings"
 )
 
-func pprint(lines [][]bool) {
-	for _, row := range lines {
-		for _, isHole := range row {
-			if isHole {
-				fmt.Print("#")
-			} else {
-				fmt.Print(".")
-			}
-		}
-		fmt.Println()
-	}
-}
-
 func main() {
-	bytes, err := os.ReadFile("test.txt")
+	fmt.Printf("Reading File ...\n")
+	bytes, err := os.ReadFile("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 	instructions := cleanupData(bytes)
-	result2 := part1(instructions)
+	result2 := part2(instructions)
 	fmt.Printf("Actual result: %d\n", result2)
-	result := part1Optimized(instructions)
-	fmt.Printf("\nFinal result: %d\n", result)
+	// result := part1Optimized(instructions)
+	// fmt.Printf("\nFinal result: %d\n", result)
 }
 
 type Instruction struct {
@@ -128,7 +116,6 @@ func getInitialState(instructions []Instruction) (dimensions Vector, startPositi
 
 func dig(instructions []Instruction) [][]bool {
 	dimensions, startPos := getInitialState(instructions)
-	fmt.Printf("dimensions %#v, startPos %v\n", dimensions, startPos)
 	digged := make([][]bool, dimensions.row)
 	for i := range digged {
 		digged[i] = make([]bool, dimensions.col)
@@ -152,25 +139,15 @@ func fill(holes [][]bool) [][]bool {
 			continue
 		}
 
-		// previousDigged := false
-		// below := false // toggle everytime below is digged
 		isIn := false
 		for j, digged := range row[:len(row)-1] {
 			belowDigged := holes[i+1][j]
-			// if belowDigged {
-			// 	below = !below
-			// }
-			// if j == 0 {
-			// 	continue
-			// }
 			if digged && belowDigged {
 				isIn = !isIn
 			}
 			if isIn {
 				holes[i][j] = true
 			}
-
-			// previousDigged = digged
 		}
 	}
 	return holes
@@ -187,14 +164,13 @@ func countTrue(mask [][]bool) (total int) {
 	return total
 }
 
-func part1(instructions []Instruction) (total int) {
+// Builds a boolean 2Darray that contains the polygon described by instructions,
+// sets to true all cells in the path of the instructions, then fill the polygon
+// via horizontal ray / intersection with vertical edges of the polygon,
+// then count how many cells are true
+func part1Naive(instructions []Instruction) (total int) {
 	edge := dig(instructions)
-	// pprint(edge)
-	// println()
-	fmt.Println("caclulated edges")
 	holes := fill(edge)
-	fmt.Println("caclulated fill")
-	pprint(holes)
 	return countTrue(holes)
 
 }
@@ -205,11 +181,11 @@ type VerticalEdge struct {
 	rowEnd   int64
 }
 
-func getVerticalEdges(instructions []Instruction) ([]VerticalEdge, Vector) {
+func getVerticalEdges(instructions []Instruction) []VerticalEdge {
 	e := make([]VerticalEdge, 0, len(instructions)/2+1)
-	dimensions, startPos := getInitialState(instructions)
-	// fmt.Printf("dimensions %#v, startPos %v\n", dimensions, startPos)
-	currentPos := startPos
+	// _, startPos := getInitialState(instructions)
+	currentPos := Vector{0, 0}
+	// currentPos := startPos
 	for _, instruction := range instructions {
 		col := currentPos.col
 		startRow := currentPos.row
@@ -224,7 +200,7 @@ func getVerticalEdges(instructions []Instruction) ([]VerticalEdge, Vector) {
 		}
 	}
 
-	return e, dimensions
+	return e
 }
 
 type State struct {
@@ -242,14 +218,9 @@ func (pq PriorityQueue) Less(i, j int) bool { // lower value has higher priority
 }
 func (pq PriorityQueue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
-	// pq[i].index = i
-	// pq[j].index = j
 }
 
 func (pq *PriorityQueue) Push(x any) {
-	// n := len(*pq)
-	// item :=
-	// item.index = n
 	*pq = append(*pq, x.(*State))
 }
 
@@ -257,30 +228,24 @@ func (pq *PriorityQueue) Pop() any {
 	old := *pq
 	n := len(old)
 	item := old[n-1]
-	// old[n-1] = nil  // avoid memory leak
-	// item.index = -1 // for safety
 	*pq = old[0 : n-1]
 	return item
 }
 
 func splitEdgesIntoSharedVerticalBatches(edges []VerticalEdge) [][]VerticalEdge {
-	// slices.SortFunc(edges, func(a VerticalEdge, b VerticalEdge) int { return int(a.rowStart - b.rowStart) })
 	pq := make(PriorityQueue, 2*len(edges))
 	for i, e := range edges {
 		pq[2*i] = &State{e, e.rowStart, true}
 		pq[2*i+1] = &State{e, e.rowEnd, false}
 	}
 	heap.Init(&pq)
-	// fmt.Printf("Priority queue initialized, len: %d\n", len(pq))
 	batches := make([][]VerticalEdge, 0, len(edges)) // at least one batch per vertical edge if no intersections
 	previousEdges := make([]VerticalEdge, 0)
-	// currentIndex := 0
 	for pq.Len() > 0 {
 		state := heap.Pop(&pq).(*State)
 		newBatch := make([]VerticalEdge, 0, len(previousEdges))
 		updatedPreviousEdges := make([]VerticalEdge, 0, len(previousEdges))
-		fmt.Printf("New change at row %d, isStart %t, len(previousEdges)=%d\n", state.changeIndex, state.isStart, len(previousEdges))
-		fmt.Printf("%v\n", state.edge)
+
 		for _, previousEdge := range previousEdges {
 			// because of heap condition, they all go at least as far as state.changeIndex
 			if state.changeIndex > previousEdge.rowStart {
@@ -296,50 +261,38 @@ func splitEdgesIntoSharedVerticalBatches(edges []VerticalEdge) [][]VerticalEdge 
 			previousEdges = updatedPreviousEdges
 		}
 		if state.isStart {
-			fmt.Printf("Appending edge %d->%d to previousEdges\n", state.edge.rowStart, state.edge.rowEnd)
 			previousEdges = append(previousEdges, state.edge)
 		}
-		fmt.Printf("Previous Edges: %v\n", previousEdges)
-		fmt.Printf("New Batch: %v\n", newBatch)
 		if len(newBatch) > 0 {
 			batches = append(batches, newBatch)
 		}
-		// TODO careful about edges that change at the same row
-		// for _, newEdge := range edges {
-		// for _, previousEdge := range previousEdges{
-		// 	if previousEdge.rowEnd <
-		// }
 	}
 	return batches
 }
 
+// Collects all vertical edges that constitute the polygon described by the instructions,
+// then distribute them into batches of edges that start and end at the same row (but are
+// at a different col). To do so, edges often have to be split into multiple tinier edges
+// if overlapping with other edges.
+// following edges in these batches build rectangles that are inside the polygon, so
+// we add the "area" of each of these rectangles to the total
+// Last thing is handling the overlap between rectangles of different batches
 func part1Optimized(instructions []Instruction) (total int64) {
-	verticalEdges, dimensions := getVerticalEdges(instructions)
-	// fmt.Printf("%#v\n", verticalEdges)
-	fmt.Printf("%#v\n", dimensions)
-	// for i, e := range verticalEdges {
-	// fmt.Printf("i %03d: col %d, row %d -> %d\n", i, e.col, e.rowStart, e.rowEnd)
-	// }
+	verticalEdges := getVerticalEdges(instructions)
 	batches := splitEdgesIntoSharedVerticalBatches(verticalEdges)
 	var previousBatch []VerticalEdge
 	for i, b := range batches {
 		slices.SortFunc(b, func(a, b VerticalEdge) int { return int(a.col - b.col) })
-		fmt.Printf("Batch i %03d: (%d -> %d) : [ ", i, b[0].rowStart, b[0].rowEnd)
-		for _, e := range b {
-			fmt.Printf("col %d,", e.col)
-		}
-		fmt.Println(" ]")
 		for j := 0; j < len(b); j += 2 {
 			total += (b[j+1].col - b[j].col + 1) * (b[j].rowEnd - b[j].rowStart + 1)
 			// counts twice the intersection between the rectangles one above the other
 		}
 		if i != 0 {
-			fmt.Printf(" %03d: Eliminating overlaps with previous batch: ", i)
+			// eliminate overlaps with previous batches
+			// as there is no horizonzal overlap, we only need to iterate by pairing segments from
+			// previous batch and current batch
+			// (overlap is only one row high, so we do simple segment arithmetic here)
 			for j, k := 0, 0; j < len(b) && k < len(previousBatch); j += 2 {
-				// eliminate overlaps with previous batches
-				// as there is no horizonzal overlap, we only need to iterate by pairing segments from
-				// previous batch and current batch
-				// (overlap is only one row high, so we do simple segment arithmetic here)
 				pStart := previousBatch[k].col
 				pEnd := previousBatch[k+1].col
 				cStart := b[j].col
@@ -347,30 +300,15 @@ func part1Optimized(instructions []Instruction) (total int64) {
 				duplicated := max(0, min(cEnd, pEnd)-max(cStart, pStart)+1)
 				total -= duplicated
 				if pEnd < cEnd {
+					// the next rectangle that might overlap is in previous row, not the current one
 					k += 2
 					j -= 2
 				}
-				fmt.Print(duplicated, " ")
 			}
-			fmt.Println()
 		}
-		// var batchIndexPrevious, batchIndexCurrent int
-		// for {
-		// 	previous := previousBatch[batchIndexPrevious]
-		// 	current := b[batchIndexCurrent]
-		// 	if
-		// }
 
 		previousBatch = b
 	}
-
-	// pprint(edge)
-	// println()
-	// fmt.Println("caclulated edges")
-	// holes := fill(edge)
-	// fmt.Println("caclulated fill")
-	// pprint(holes)
-	// return countTrue(holes)
 	return total
 
 }
@@ -384,7 +322,6 @@ func fixInstructions(instructions []Instruction) []Instruction {
 		if err != nil {
 			panic(err)
 		}
-		// fmt.Printf("i %03d: hexAmount %q, direction %q\n", i, hexAmount, direction)
 		d := right
 		switch direction {
 		case '0':
@@ -409,6 +346,5 @@ func fixInstructions(instructions []Instruction) []Instruction {
 
 func part2(instructions []Instruction) (maxTotal int64) {
 	actualInstructions := fixInstructions(instructions)
-	fmt.Printf("fixed instructions")
 	return part1Optimized(actualInstructions)
 }
