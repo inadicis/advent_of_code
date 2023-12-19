@@ -321,7 +321,7 @@ func part1Optimized(instructions []Instruction) (total int64) {
 	// fmt.Printf("i %03d: col %d, row %d -> %d\n", i, e.col, e.rowStart, e.rowEnd)
 	// }
 	batches := splitEdgesIntoSharedVerticalBatches(verticalEdges)
-
+	var previousBatch []VerticalEdge
 	for i, b := range batches {
 		slices.SortFunc(b, func(a, b VerticalEdge) int { return int(a.col - b.col) })
 		fmt.Printf("Batch i %03d: (%d -> %d) : [ ", i, b[0].rowStart, b[0].rowEnd)
@@ -329,10 +329,39 @@ func part1Optimized(instructions []Instruction) (total int64) {
 			fmt.Printf("col %d,", e.col)
 		}
 		fmt.Println(" ]")
-		for i := 0; i < len(b); i += 2 {
-			total += (b[i+1].col - b[i].col + 1) * (b[i].rowEnd - b[i].rowStart + 1)
+		for j := 0; j < len(b); j += 2 {
+			total += (b[j+1].col - b[j].col + 1) * (b[j].rowEnd - b[j].rowStart + 1)
 			// counts twice the intersection between the rectangles one above the other
 		}
+		if i != 0 {
+			fmt.Printf(" %03d: Eliminating overlaps with previous batch: ", i)
+			for j, k := 0, 0; j < len(b) && k < len(previousBatch); j += 2 {
+				// eliminate overlaps with previous batches
+				// as there is no horizonzal overlap, we only need to iterate by pairing segments from
+				// previous batch and current batch
+				// (overlap is only one row high, so we do simple segment arithmetic here)
+				pStart := previousBatch[k].col
+				pEnd := previousBatch[k+1].col
+				cStart := b[j].col
+				cEnd := b[j+1].col
+				duplicated := max(0, min(cEnd, pEnd)-max(cStart, pStart)+1)
+				total -= duplicated
+				if pEnd < cEnd {
+					k += 2
+					j -= 2
+				}
+				fmt.Print(duplicated, " ")
+			}
+			fmt.Println()
+		}
+		// var batchIndexPrevious, batchIndexCurrent int
+		// for {
+		// 	previous := previousBatch[batchIndexPrevious]
+		// 	current := b[batchIndexCurrent]
+		// 	if
+		// }
+
+		previousBatch = b
 	}
 
 	// pprint(edge)
